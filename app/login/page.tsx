@@ -12,7 +12,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState<boolean>(false);
 
   const router = useRouter();
-  // Create the Supabase client lazily inside the submit handler
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -35,9 +34,26 @@ export default function LoginPage() {
     });
 
     if (authError) {
-      setError(authError.message); // Menampilkan error asli dari Supabase (misal: "Invalid credentials")
+      setError(authError.message); // Menampilkan error asli dari Supabase
       setLoading(false);
     } else {
+      // --- LOGIKA TAMBAHAN: SIMPAN ROLE SEMENTARA ---
+      // Logika ini berjalan HANYA jika login Supabase BERHASIL
+      
+      let role = "mahasiswa"; // Default role
+      
+      // Deteksi role berdasarkan string email (Logic simulasi kita)
+      if (email.includes("admin") || email.includes("kaprodi")) {
+        role = "kaprodi";
+      } else if (email.includes("dosen")) {
+        role = "dosen";
+      }
+
+      // Simpan ke LocalStorage agar Dashboard bisa membaca role-nya
+      localStorage.setItem("user_role", role);
+      localStorage.setItem("user_email", email);
+      // ----------------------------------------------
+
       router.push("/");
       router.refresh(); // Memastikan state login terupdate di seluruh aplikasi
     }
@@ -96,4 +112,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
+} 
