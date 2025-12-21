@@ -40,20 +40,39 @@ export default function ProfilPage() {
         let profileData: any = null;
         let profileError: any = null;
 
-        const byId = await supabase.from("profile").select("*").eq("id", user.id).maybeSingle();
+        const byId = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
         if (byId.error) profileError = byId.error;
         if (byId.data) profileData = byId.data;
 
         if (!profileData) {
-          const byUserId = await supabase.from("profile").select("*").eq("user_id", user.id).maybeSingle();
+          const byUserId = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
           if (byUserId.error) profileError = byUserId.error;
           if (byUserId.data) profileData = byUserId.data;
         }
 
         if (!profileData) {
-          const byEmail = await supabase.from("profile").select("*").eq("email", user.email).maybeSingle();
+          const byEmail = await supabase.from("profiles").select("*").eq("email", user.email).maybeSingle();
           if (byEmail.error) profileError = byEmail.error;
           if (byEmail.data) profileData = byEmail.data;
+        }
+
+        // If table 'profiles' didn't have data, try singular 'profile' (some schemas use that name)
+        if (!profileData) {
+          const pById = await supabase.from("profile").select("*").eq("id", user.id).maybeSingle();
+          if (pById.error) profileError = pById.error;
+          if (pById.data) profileData = pById.data;
+
+          if (!profileData) {
+            const pByUserId = await supabase.from("profile").select("*").eq("user_id", user.id).maybeSingle();
+            if (pByUserId.error) profileError = pByUserId.error;
+            if (pByUserId.data) profileData = pByUserId.data;
+          }
+
+          if (!profileData) {
+            const pByEmail = await supabase.from("profile").select("*").eq("email", user.email).maybeSingle();
+            if (pByEmail.error) profileError = pByEmail.error;
+            if (pByEmail.data) profileData = pByEmail.data;
+          }
         }
 
         if (profileError && !profileData) throw profileError;
@@ -65,12 +84,32 @@ export default function ProfilPage() {
         }
 
         // Map fields from the profile row to our component state
+        const resolvedName =
+          profileData.nama ??
+          profileData.name ??
+          profileData.full_name ??
+          profileData.display_name ??
+          profileData.username ??
+          profileData.user_name ??
+          "";
+
+        const resolvedFakultas =
+          profileData.fakultas ??
+          profileData.faculty ??
+          profileData.department ??
+          profileData.departement ??
+          profileData.fakultas_name ??
+          "";
+
+        if (!resolvedName) console.warn("Profil: kolom nama tidak ditemukan di row 'profile(s)'.");
+        if (!resolvedFakultas) console.warn("Profil: kolom fakultas tidak ditemukan di row 'profile(s)'.");
+
         setProfil({
-          nama: profileData.nama ?? profileData.name ?? "",
-          nomorInduk: profileData.nomor_induk ?? profileData.nomorInduk ?? profileData.nim ?? "",
+          nama: resolvedName,
+          nomorInduk: profileData.nomor_induk ?? profileData.nomorInduk ?? profileData.nim ?? profileData.nidn,
           jurusan: profileData.jurusan ?? profileData.prodi ?? "",
           angkatan: profileData.angkatan ?? profileData.year ?? "",
-          fakultas: profileData.fakultas ?? ""
+          fakultas: resolvedFakultas
         });
 
         setRole(profileData.role ?? (profileData.user_role ?? "mahasiswa"));

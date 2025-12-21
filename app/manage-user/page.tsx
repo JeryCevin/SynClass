@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import "./globals.css";
+
 
 export default function ManageUserPage() {
   const router = useRouter();
