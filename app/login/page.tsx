@@ -12,23 +12,48 @@ export default function LoginPage() {
   const [loading, setLoading] = useState<boolean>(false);
 
   const router = useRouter();
-  const supabase = createClient(); // Inisialisasi jembatan ke Supabase
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    // LOGIKA BARU: Kirim data ke Supabase Auth
+    let supabase;
+    try {
+      supabase = createClient();
+    } catch (err: any) {
+      setError(err?.message || "Supabase client initialization gagal.");
+      setLoading(false);
+      return;
+    }
+
+    // Kirim data ke Supabase Auth
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
     });
 
     if (authError) {
-      setError(authError.message); // Menampilkan error asli dari Supabase (misal: "Invalid credentials")
+      setError(authError.message); // Menampilkan error asli dari Supabase
       setLoading(false);
     } else {
+      // --- LOGIKA TAMBAHAN: SIMPAN ROLE SEMENTARA ---
+      // Logika ini berjalan HANYA jika login Supabase BERHASIL
+      
+      let role = "mahasiswa"; // Default role
+      
+      // Deteksi role berdasarkan string email (Logic simulasi kita)
+      if (email.includes("admin") || email.includes("kaprodi")) {
+        role = "kaprodi";
+      } else if (email.includes("dosen")) {
+        role = "dosen";
+      }
+
+      // Simpan ke LocalStorage agar Dashboard bisa membaca role-nya
+      localStorage.setItem("user_role", role);
+      localStorage.setItem("user_email", email);
+      // ----------------------------------------------
+
       router.push("/");
       router.refresh(); // Memastikan state login terupdate di seluruh aplikasi
     }
@@ -38,7 +63,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
-          Masuk ke Synclass
+          Masuk ke Synclass sekarang
         </h2>
 
         {error && (
@@ -49,12 +74,12 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-black">
               Email
             </label>
             <input
               type="email"
-              className="w-full mt-1 p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full mt-1 p-3 border border-gray-900 text-black rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
               required
@@ -87,4 +112,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
+} 
