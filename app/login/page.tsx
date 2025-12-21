@@ -38,7 +38,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
-          Masuk ke Synclass
+          Masuk ke Synclass sekarang
         </h2>
 
         {error && (
