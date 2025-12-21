@@ -9,6 +9,11 @@ export default function ProfilPage() {
   const [email, setEmail] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPwdForm, setShowPwdForm] = useState<boolean>(false);
+  const [newPassword, setNewPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [updatingPassword, setUpdatingPassword] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   // Data dummy yang nanti akan diganti dengan data dari Supabase
   const [profil, setProfil] = useState({
@@ -220,11 +225,59 @@ export default function ProfilPage() {
 
           {/* Tombol Aksi (Hanya Hiasan dulu) */}
           <div className="mt-8 pt-6 border-t flex justify-end gap-3">
-             <button className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">Ubah Password</button>
+             <button onClick={() => { setShowPwdForm(s => !s); setSuccessMessage(null); setError(null); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">Ubah Password</button>
              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm">
                 Request Edit Data
              </button>
           </div>
+
+          {/* Form Ubah Password (tampil ketika diaktifkan) */}
+          {showPwdForm && (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setError(null);
+              setSuccessMessage(null);
+              if (newPassword.length < 6) {
+                setError("Password harus minimal 6 karakter.");
+                return;
+              }
+              if (newPassword !== confirmPassword) {
+                setError("Konfirmasi password tidak cocok.");
+                return;
+              }
+              setUpdatingPassword(true);
+              try {
+                const supabase = createClient();
+                const { data, error: updErr } = await supabase.auth.updateUser({ password: newPassword });
+                if (updErr) throw updErr;
+                setSuccessMessage("Password berhasil diubah.");
+                setNewPassword("");
+                setConfirmPassword("");
+                setShowPwdForm(false);
+              } catch (err: any) {
+                setError(err?.message || "Gagal mengubah password.");
+              } finally {
+                setUpdatingPassword(false);
+              }
+            }} className="mt-4 p-4 border rounded-lg bg-gray-50">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Password Baru</label>
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full border border-gray-300 p-2.5 rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Konfirmasi Password</label>
+                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full border border-gray-300 p-2.5 rounded-lg" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-3 justify-end">
+                <button type="button" onClick={() => { setShowPwdForm(false); setError(null); setSuccessMessage(null); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
+                <button type="submit" disabled={updatingPassword} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">{updatingPassword ? 'Menyimpan...' : 'Simpan Password'}</button>
+              </div>
+              {successMessage && <p className="text-green-600 mt-3">{successMessage}</p>}
+              {error && <p className="text-red-600 mt-3">{error}</p>}
+            </form>
+          )}
 
         </div>
       </div>
