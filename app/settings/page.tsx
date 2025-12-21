@@ -1,194 +1,181 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "../../utils/supabase/client";
 
 export default function SettingsPage() {
-  // State untuk Tab Aktif
-  const [activeTab, setActiveTab] = useState("akun");
+  // State untuk Tab Aktif (hanya 2 tab: Manage User, Mata Kuliah)
+  const [activeTab, setActiveTab] = useState("manageUser");
 
-  // State Form Ganti Password
-  const [passwords, setPasswords] = useState({
-    current: "",
-    new: "",
-    confirm: ""
-  });
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState<boolean>(true);
+  const [coursesError, setCoursesError] = useState<string | null>(null);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState<boolean>(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
 
-  // State Notifikasi (Toggle)
-  const [notifications, setNotifications] = useState({
-    emailGrade: true,
-    emailNews: false,
-    pushNotif: true
-  });
+  // (notifikasi UI removed)
 
-  const handlePasswordChange = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwords.new !== passwords.confirm) {
-      alert("❌ Password baru dan konfirmasi tidak cocok!");
-      return;
-    }
-    // Disini nanti panggil Supabase: supabase.auth.updateUser(...)
-    alert("✅ Password berhasil diubah!");
-    setPasswords({ current: "", new: "", confirm: "" });
-  };
+  useEffect(() => {
+    const supabase = createClient();
+    const fetchProfileAndCourses = async () => {
+      setLoadingCourses(true);
+      try {
+        // only fetch courses for Mata Kuliah tab
+        const candidates = ["matakuliah", "mata_kuliah", "courses", "classes", "enrollments"];
+        let found: any = null;
+        for (const t of candidates) {
+          try {
+            const res = await supabase.from(t).select("*");
+            if (!res.error && res.data && (res.data as any[]).length > 0) { found = res.data; break; }
+          } catch {
+            // ignore
+          }
+        }
+        if (found) setCourses(found as any[]);
+      } catch (err: any) {
+        setCoursesError(err?.message || "Gagal mengambil data mata kuliah.");
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
+
+    fetchProfileAndCourses();
+
+    // Fetch all users for Manage User table (try common table names)
+    const fetchUsers = async () => {
+      setLoadingUsers(true);
+      setUsersError(null);
+      try {
+        const tables = ["profiles", "profile"];
+        let all: any[] | null = null;
+        for (const t of tables) {
+          try {
+            const res = await supabase.from(t).select("*");
+            if (!res.error && res.data && (res.data as any[]).length > 0) { all = res.data as any[]; break; }
+          } catch (e) { /* ignore */ }
+        }
+        if (!all) {
+          setUsers([]);
+          setUsersError("Tidak dapat mengambil daftar user (cek RLS / nama tabel).");
+        } else {
+          setUsers(all);
+        }
+      } catch (err: any) {
+        setUsersError(err?.message || "Gagal mengambil users.");
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  // password/account UI removed — manage user table will be used instead
 
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Pengaturan</h1>
 
-      {/* --- MENU TAB --- */}
+      {/* --- MENU TAB (Manage User | Mata Kuliah) --- */}
       <div className="flex gap-4 border-b border-gray-200 mb-6">
         <button
-          onClick={() => setActiveTab("akun")}
+          onClick={() => setActiveTab("manageUser")}
           className={`pb-2 px-4 font-medium transition ${
-            activeTab === "akun" 
-              ? "border-b-2 border-blue-600 text-blue-600" 
+            activeTab === "manageUser"
+              ? "border-b-2 border-blue-600 text-blue-600"
               : "text-gray-500 hover:text-gray-800"
           }`}
         >
-          Keamanan Akun
+          Manage User
         </button>
         <button
-          onClick={() => setActiveTab("notifikasi")}
+          onClick={() => setActiveTab("matakuliah")}
           className={`pb-2 px-4 font-medium transition ${
-            activeTab === "notifikasi" 
-              ? "border-b-2 border-blue-600 text-blue-600" 
+            activeTab === "matakuliah"
+              ? "border-b-2 border-blue-600 text-blue-600"
               : "text-gray-500 hover:text-gray-800"
           }`}
         >
-          Notifikasi
-        </button>
-        <button
-          onClick={() => setActiveTab("umum")}
-          className={`pb-2 px-4 font-medium transition ${
-            activeTab === "umum" 
-              ? "border-b-2 border-blue-600 text-blue-600" 
-              : "text-gray-500 hover:text-gray-800"
-          }`}
-        >
-          Umum
+          Mata Kuliah
         </button>
       </div>
 
-      {/* --- KONTEN TAB: AKUN --- */}
-      {activeTab === "akun" && (
+      {/* --- KONTEN TAB: MANAGE USER --- */}
+      {activeTab === "manageUser" && (
         <div className="max-w-xl">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Ganti Password</h3>
-            <form onSubmit={handlePasswordChange} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password Saat Ini</label>
-                <input
-                  type="password"
-                  required
-                  className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                  value={passwords.current}
-                  onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-                />
+          {/* Manage User Table */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Manage User</h3>
+            {loadingUsers ? (
+              <p className="text-gray-500">Memuat daftar pengguna...</p>
+            ) : usersError ? (
+              <p className="text-red-600">{usersError}</p>
+            ) : users && users.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left table-auto">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="px-4 py-2 text-sm font-medium">Nama</th>
+                      <th className="px-4 py-2 text-sm font-medium">Email</th>
+                      <th className="px-4 py-2 text-sm font-medium">Role</th>
+                      <th className="px-4 py-2 text-sm font-medium">Status</th>
+                      <th className="px-4 py-2 text-sm font-medium">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u, idx) => (
+                      <tr key={u.id ?? idx} className="border-t">
+                        <td className="px-4 py-3">{u.nama ?? u.name ?? u.full_name ?? u.username ?? '-'}</td>
+                        <td className="px-4 py-3">{u.email ?? '-'}</td>
+                        <td className="px-4 py-3">{u.role ?? u.user_role ?? '-'}</td>
+                        <td className="px-4 py-3">{(u.status ?? u.active ?? u.is_active) ? 'Active' : 'Inactive'}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <button className="text-sm px-3 py-1 bg-blue-600 text-white rounded">Edit</button>
+                            <button className="text-sm px-3 py-1 bg-red-600 text-white rounded">Toggle</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password Baru</label>
-                <input
-                  type="password"
-                  required
-                  className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                  value={passwords.new}
-                  onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Konfirmasi Password Baru</label>
-                <input
-                  type="password"
-                  required
-                  className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                  value={passwords.confirm}
-                  onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-                />
-              </div>
-              <div className="flex justify-end">
-                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">
-                  Simpan Password
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <div className="bg-red-50 p-6 rounded-xl border border-red-200">
-            <h3 className="text-red-800 font-bold mb-2">Zona Bahaya</h3>
-            <p className="text-red-600 text-sm mb-4">
-              Menghapus akun akan menghilangkan semua data nilai dan presensi secara permanen.
-            </p>
-            <button 
-                onClick={() => alert("Fitur ini dinonaktifkan demi keamanan demo.")}
-                className="bg-white border border-red-300 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-50"
-            >
-              Hapus Akun Saya
-            </button>
+            ) : (
+              <p className="text-gray-500">Tidak ada pengguna.</p>
+            )}
           </div>
         </div>
       )}
 
-      {/* --- KONTEN TAB: NOTIFIKASI --- */}
-      {activeTab === "notifikasi" && (
-        <div className="max-w-2xl bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-800 mb-6">Preferensi Notifikasi</h3>
-          
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-800">Notifikasi Nilai Keluar</p>
-                <p className="text-sm text-gray-500">Kirim email saat dosen memposting nilai baru.</p>
-              </div>
-              <input 
-                type="checkbox" 
-                checked={notifications.emailGrade}
-                onChange={() => setNotifications({...notifications, emailGrade: !notifications.emailGrade})}
-                className="w-5 h-5 accent-blue-600"
-              />
-            </div>
-            
-            <hr />
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-800">Berita Kampus</p>
-                <p className="text-sm text-gray-500">Dapatkan update mingguan tentang acara kampus.</p>
-              </div>
-              <input 
-                type="checkbox" 
-                checked={notifications.emailNews}
-                onChange={() => setNotifications({...notifications, emailNews: !notifications.emailNews})}
-                className="w-5 h-5 accent-blue-600"
-              />
-            </div>
+      {/* --- KONTEN TAB lainnya dihapus; Mata Kuliah dipindah ke tab khusus di bawah --- */}
+      
+      {/* --- KONTEN TAB: MATA KULIAH --- */}
+      {activeTab === "matakuliah" && (
+        <div className="max-w-2xl">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-800 mb-3">Mata Kuliah Terdaftar</h3>
+            {loadingCourses ? (
+              <p className="text-gray-500">Memuat mata kuliah...</p>
+            ) : coursesError ? (
+              <p className="text-red-600">{coursesError}</p>
+            ) : courses && courses.length > 0 ? (
+              <ul className="space-y-2">
+                {courses.map((c, i) => (
+                  <li key={i} className="bg-white p-3 rounded-lg border border-gray-200">
+                    <div className="font-bold">{c.name ?? c.nama ?? c.title ?? c.kode ?? 'Mata Kuliah'}</div>
+                    <div className="text-sm text-gray-500">{c.code ?? c.kode ?? c.kd ?? ''}</div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500">Belum ada mata kuliah terdaftar.</p>
+            )}
           </div>
         </div>
       )}
 
-      {/* --- KONTEN TAB: UMUM --- */}
-      {activeTab === "umum" && (
-        <div className="max-w-2xl bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-           <h3 className="text-lg font-bold text-gray-800 mb-4">Tampilan Aplikasi</h3>
-           
-           <div className="flex items-center justify-between mb-4">
-              <span>Tema Gelap (Dark Mode)</span>
-              <button 
-                onClick={() => alert("Fitur Dark Mode sedang dalam pengembangan!")}
-                className="bg-gray-200 text-gray-600 px-3 py-1 rounded text-xs font-bold"
-              >
-                Segera Hadir
-              </button>
-           </div>
-           
-           <div className="flex items-center justify-between">
-              <span>Bahasa</span>
-              <select className="border p-2 rounded bg-gray-50">
-                <option>Indonesia</option>
-                <option>English</option>
-              </select>
-           </div>
-        </div>
-      )}
+      {/* (Mata Kuliah ditampilkan di tab 'Mata Kuliah') */}
     </div>
   );
 }
