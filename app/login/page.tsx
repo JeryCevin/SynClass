@@ -12,14 +12,23 @@ export default function LoginPage() {
   const [loading, setLoading] = useState<boolean>(false);
 
   const router = useRouter();
-  const supabase = createClient(); // Inisialisasi jembatan ke Supabase
+  // Create the Supabase client lazily inside the submit handler
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    // LOGIKA BARU: Kirim data ke Supabase Auth
+    let supabase;
+    try {
+      supabase = createClient();
+    } catch (err: any) {
+      setError(err?.message || "Supabase client initialization gagal.");
+      setLoading(false);
+      return;
+    }
+
+    // Kirim data ke Supabase Auth
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
