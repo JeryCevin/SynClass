@@ -39,6 +39,7 @@ export default function Sidebar() {
     { label: "List Kelas", icon: "📚", href: "/list-kelas", roles: ["kaprodi", "dosen", "mahasiswa"] },
     { label: "KRS", icon: "📄", href: "/krs", roles: ["kaprodi", "dosen", "mahasiswa"] },
     { label: "KHS", icon: "📊", href: "/khs", roles: ["kaprodi", "dosen", "mahasiswa"] },
+    { label: "Pengaturan", icon: "⚙️", href: "/settings", roles: ["kaprodi", "dosen", "mahasiswa"] },
   ];
 
   // Filter menu berdasarkan Role
