@@ -112,6 +112,32 @@ export default function SettingsPage() {
     return "bg-gray-100 text-gray-800";
   };
 
+  // Resolve email from various possible column names (prefer profile fields)
+  const resolveEmail = (u: any) => {
+    if (!u) return "-";
+    const candidates = [
+      "email",
+      "user_email",
+      "profile_email",
+      "email_profile",
+      "email_address",
+      "mail",
+      "account_email",
+    ];
+    for (const k of candidates) {
+      if (u[k]) return u[k];
+    }
+
+    // scan all string fields for an address containing '@'
+    for (const key of Object.keys(u)) {
+      const val = u[key];
+      if (typeof val === "string" && val.includes("@")) return val;
+    }
+
+    // fallback to username/name
+    return u?.username ?? u?.name ?? u?.nama ?? "-";
+  };
+
   // User Table Component
   const UserTable = ({
     title,
@@ -171,7 +197,7 @@ export default function SettingsPage() {
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-slate-600">{u.email ?? "-"}</td>
+                  <td className="px-6 py-4 text-slate-600">{resolveEmail(u)}</td>
                   <td className="px-6 py-4">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${getRoleBadge(
