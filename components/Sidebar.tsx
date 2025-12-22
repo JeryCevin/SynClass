@@ -51,7 +51,7 @@ export default function Sidebar() {
   const allMenus = [
     { label: "Dashboard", icon: "🏠", href: "/", roles: ["kaprodi", "dosen", "mahasiswa"] },
     { label: "Profil", icon: "👤", href: "/profil", roles: ["kaprodi", "dosen", "mahasiswa"] },
-    { label: "List Kelas", icon: "📚", href: "/list-kelas", roles: ["kaprodi", "dosen", "mahasiswa"] },
+    { label: "Jadwal Kelas", icon: "📚", href: "/list-kelas", roles: ["kaprodi", "dosen", "mahasiswa"] },
     { label: "KRS", icon: "📄", href: "/krs", roles: ["kaprodi", "dosen", "mahasiswa"] },
     { label: "KHS", icon: "📊", href: "/khs", roles: ["kaprodi", "dosen", "mahasiswa"] },
     { label: "Pengaturan", icon: "⚙️", href: "/settings", roles: ["kaprodi", "dosen", "mahasiswa"] },
