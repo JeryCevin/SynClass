@@ -31,6 +31,7 @@ interface KelasMahasiswa {
   nilai_angka: number | null;
   kelas?: Kelas & { matakuliah: MataKuliah };
   profiles?: { id: string; username: string; jurusan: string };
+  _originalId?: number | string; // Original ID from database
 }
 
 interface GradeOption {
@@ -223,12 +224,13 @@ export default function KHSPage() {
           const pengajuan = approvedPengajuanMap.get(detail.krs_pengajuan_id);
           const profile = profilesMap.get(pengajuan?.mahasiswa_id || "");
           return {
-            id: detail.id.toString(),
+            id: String(detail.id), // Keep original ID format as string
             kelas_id: kelasId,
             mahasiswa_id: pengajuan?.mahasiswa_id || "",
             nilai_huruf: detail.nilai_huruf,
             nilai_angka: detail.nilai_angka,
             profiles: profile || { id: "", username: "Unknown", jurusan: "-" },
+            _originalId: detail.id, // Store original ID for update
           };
         });
 
@@ -248,11 +250,15 @@ export default function KHSPage() {
   // Update nilai mahasiswa (Dosen) - update di krs_detail
   const handleUpdateNilai = async (
     kelasMahasiswaId: string,
-    gradeOption: GradeOption | null
+    gradeOption: GradeOption | null,
+    originalId?: number | string
   ) => {
     setSavingId(kelasMahasiswaId);
 
     try {
+      // Gunakan originalId jika tersedia, atau parse dari kelasMahasiswaId
+      const idToUpdate = originalId ?? parseInt(kelasMahasiswaId);
+
       // Update di krs_detail
       const { error } = await supabase
         .from("krs_detail")
@@ -260,10 +266,7 @@ export default function KHSPage() {
           nilai_huruf: gradeOption?.huruf || null,
           nilai_angka: gradeOption?.angka || null,
         })
-        .eq("id", parseInt(kelasMahasiswaId));
-
-      if (error) throw error;
-
+        .eq("id", idToUpdate);
       // Update local state
       setMahasiswaList((prev) =>
         prev.map((m) =>
@@ -463,7 +466,11 @@ export default function KHSPage() {
                                 const selected = GRADE_OPTIONS.find(
                                   (g) => g.huruf === e.target.value
                                 );
-                                handleUpdateNilai(mhs.id, selected || null);
+                                handleUpdateNilai(
+                                  mhs.id,
+                                  selected || null,
+                                  mhs._originalId
+                                );
                               }}
                               disabled={savingId === mhs.id}
                               className={`px-4 py-2 rounded-lg border font-semibold text-center min-w-[100px] ${getGradeColor(
