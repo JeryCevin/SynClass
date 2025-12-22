@@ -123,24 +123,123 @@ export default function KHSPage() {
     init();
   }, []);
 
-  // Fetch nilai untuk Mahasiswa
+  // Fetch nilai untuk Mahasiswa (dari krs_detail yang approved)
   const fetchMahasiswaGrades = async (mahasiswaId: string) => {
-    const { data, error } = await supabase
-      .from("kelas_mahasiswa")
-      .select(
-        `
-        *,
-        kelas (
-          *,
-          matakuliah (*)
-        )
-      `
-      )
-      .eq("mahasiswa_id", mahasiswaId)
-      .order("created_at", { ascending: false });
+    try {
+      console.log("Fetching grades for mahasiswa:", mahasiswaId);
 
-    if (data) setGrades(data);
-    if (error) console.error("Error fetching grades:", error);
+      // Step 1: Get krs_pengajuan yang approved untuk mahasiswa ini
+      const { data: pengajuanData, error: pengajuanError } = await supabase
+        .from("krs_pengajuan")
+        .select("id, semester")
+        .eq("mahasiswa_id", mahasiswaId)
+        .eq("status", "approved");
+
+      console.log("Pengajuan data:", pengajuanData, "Error:", pengajuanError);
+
+      if (pengajuanError) {
+        console.error("Pengajuan error:", pengajuanError.message);
+        setGrades([]);
+        return;
+      }
+      if (!pengajuanData || pengajuanData.length === 0) {
+        console.log("No approved pengajuan found");
+        setGrades([]);
+        return;
+      }
+
+      // Step 2: Get krs_detail untuk semua pengajuan yang approved
+      const pengajuanIds = pengajuanData.map((p) => p.id);
+      console.log("Pengajuan IDs:", pengajuanIds);
+
+      const { data: krsDetails, error: krsError } = await supabase
+        .from("krs_detail")
+        .select(
+          `
+          id,
+          matakuliah_id,
+          nilai_huruf,
+          nilai_angka,
+          krs_pengajuan_id
+        `
+        )
+        .in("krs_pengajuan_id", pengajuanIds);
+
+      console.log("KRS Details:", krsDetails, "Error:", krsError);
+
+      if (krsError) {
+        console.error("KRS error:", krsError.message);
+        setGrades([]);
+        return;
+      }
+      if (!krsDetails || krsDetails.length === 0) {
+        console.log("No krs_detail found");
+        setGrades([]);
+        return;
+      }
+
+      // Step 3: Get matakuliah data
+      const matakuliahIds = [
+        ...new Set(krsDetails.map((d) => d.matakuliah_id)),
+      ];
+      console.log("Matakuliah IDs:", matakuliahIds);
+
+      const { data: matakuliahData, error: mkError } = await supabase
+        .from("matakuliah")
+        .select("*")
+        .in("id", matakuliahIds);
+
+      console.log("Matakuliah data:", matakuliahData, "Error:", mkError);
+
+      if (mkError) {
+        console.error("Matakuliah error:", mkError.message);
+        setGrades([]);
+        return;
+      }
+
+      // Step 4: Create a map for pengajuan and matakuliah
+      const pengajuanMap = new Map(pengajuanData.map((p) => [p.id, p]));
+      const matakuliahMap = new Map(
+        matakuliahData?.map((m) => [m.id, m]) || []
+      );
+
+      // Step 5: Transform to KelasMahasiswa format
+      const gradesData: KelasMahasiswa[] = krsDetails.map((detail) => {
+        const pengajuan = pengajuanMap.get(detail.krs_pengajuan_id);
+        const matakuliah = matakuliahMap.get(detail.matakuliah_id);
+
+        return {
+          id: String(detail.id),
+          kelas_id: String(detail.matakuliah_id),
+          mahasiswa_id: mahasiswaId,
+          nilai_huruf: detail.nilai_huruf,
+          nilai_angka: detail.nilai_angka,
+          kelas: {
+            id: String(detail.matakuliah_id),
+            matakuliah_id: detail.matakuliah_id,
+            dosen_id: "",
+            semester:
+              pengajuan?.semester || `Semester ${matakuliah?.semester || "?"}`,
+            hari: "-",
+            jam: "-",
+            ruangan: "-",
+            matakuliah: matakuliah || {
+              id: detail.matakuliah_id,
+              kode_mk: "-",
+              nama_mk: "Unknown",
+              sks: 0,
+              semester: 0,
+            },
+          },
+        };
+      });
+
+      console.log("Final grades data:", gradesData);
+      setGrades(gradesData);
+    } catch (err: any) {
+      console.error("Error fetching grades:", err?.message || err);
+      setGrades([]);
+    }
   };
 
   // Fetch kelas/matakuliah untuk Dosen (dari tabel matakuliah berdasarkan dosen_id)
@@ -252,7 +351,7 @@ export default function KHSPage() {
     await fetchKelasMahasiswa(kelas.id);
   };
 
-  // Update nilai mahasiswa (Dosen) - update di krs_detail
+  // Update nilai mahasiswa (Dosen) - update di krs_detail dan matakuliah_diambil
   const handleUpdateNilai = async (
     kelasMahasiswaId: string,
     gradeOption: GradeOption | null,
@@ -261,17 +360,71 @@ export default function KHSPage() {
     setSavingId(kelasMahasiswaId);
 
     try {
-      // Gunakan originalId jika tersedia, atau parse dari kelasMahasiswaId
-      const idToUpdate = originalId ?? parseInt(kelasMahasiswaId);
+      // Gunakan originalId jika tersedia (bisa UUID atau number)
+      const idToUpdate = originalId ?? kelasMahasiswaId;
 
-      // Update di krs_detail
-      const { error } = await supabase
+      // Step 1: Update di krs_detail
+      const { error: krsError } = await supabase
         .from("krs_detail")
         .update({
           nilai_huruf: gradeOption?.huruf || null,
           nilai_angka: gradeOption?.angka || null,
         })
         .eq("id", idToUpdate);
+
+      if (krsError) throw krsError;
+
+      // Step 2: Get mahasiswa_id dan matakuliah_id dari krs_detail
+      const currentMhs = mahasiswaList.find((m) => m.id === kelasMahasiswaId);
+      if (currentMhs && selectedKelas) {
+        const mahasiswaId = currentMhs.mahasiswa_id;
+        const matakuliahId = selectedKelas.matakuliah_id;
+
+        // Step 3: Cek apakah sudah ada di matakuliah_diambil
+        const { data: existingData } = await supabase
+          .from("matakuliah_diambil")
+          .select("id")
+          .eq("mahasiswa_id", mahasiswaId)
+          .eq("matakuliah_id", matakuliahId)
+          .single();
+
+        if (existingData) {
+          // Update existing
+          const { error: updateError } = await supabase
+            .from("matakuliah_diambil")
+            .update({
+              nilai_huruf: gradeOption?.huruf || null,
+              nilai_angka: gradeOption?.angka || null,
+            })
+            .eq("id", existingData.id);
+
+          if (updateError) {
+            console.error(
+              "Error updating matakuliah_diambil:",
+              updateError.message
+            );
+          }
+        } else {
+          // Insert new
+          const { error: insertError } = await supabase
+            .from("matakuliah_diambil")
+            .insert({
+              mahasiswa_id: mahasiswaId,
+              matakuliah_id: matakuliahId,
+              semester: selectedKelas.semester,
+              nilai_huruf: gradeOption?.huruf || null,
+              nilai_angka: gradeOption?.angka || null,
+            });
+
+          if (insertError) {
+            console.error(
+              "Error inserting matakuliah_diambil:",
+              insertError.message
+            );
+          }
+        }
+      }
+
       // Update local state
       setMahasiswaList((prev) =>
         prev.map((m) =>
