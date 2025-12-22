@@ -34,43 +34,195 @@ export default function SettingsPage() {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    const supabase = createClient();
+  const supabase = createClient();
+  const [profilesTableName, setProfilesTableName] = useState<string | null>(null);
 
-    const fetchUsers = async () => {
-      setLoadingUsers(true);
-      setUsersError(null);
-      try {
-        const tables = ["profiles", "profile"];
-        let all: any[] | null = null;
-        for (const t of tables) {
-          try {
-            const res = await supabase.from(t).select("*");
-            if (!res.error && res.data && (res.data as any[]).length > 0) {
-              all = res.data as any[];
-              break;
-            }
-          } catch {
-            /* ignore */
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    setUsersError(null);
+    try {
+      const tables = ["profiles", "profile"];
+      let all: any[] | null = null;
+      for (const t of tables) {
+        try {
+          const res = await supabase.from(t).select("*");
+          if (!res.error && res.data && (res.data as any[]).length > 0) {
+            all = res.data as any[];
+            setProfilesTableName(t);
+            break;
           }
+        } catch {
+          /* ignore */
         }
-        if (!all) {
-          setUsers([]);
-          setUsersError(
-            "Tidak dapat mengambil daftar user (cek RLS / nama tabel)."
-          );
-        } else {
-          setUsers(all);
-        }
-      } catch (err: any) {
-        setUsersError(err?.message || "Gagal mengambil users.");
-      } finally {
-        setLoadingUsers(false);
       }
-    };
+      if (!all) {
+        setUsers([]);
+        setUsersError(
+          "Tidak dapat mengambil daftar user (cek RLS / nama tabel)."
+        );
+      } else {
+        setUsers(all);
+      }
+    } catch (err: any) {
+      setUsersError(err?.message || "Gagal mengambil users.");
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
+  useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Add user modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [newUsername, setNewUsername] = useState("");
+  const [newRole, setNewRole] = useState("student");
+  const [newNim, setNewNim] = useState("");
+  const [newProgramStudi, setNewProgramStudi] = useState("");
+  const [newFakultas, setNewFakultas] = useState("");
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  // Edit user state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editId, setEditId] = useState<any>(null);
+  const [editEmail, setEditEmail] = useState("");
+  const [editUsername, setEditUsername] = useState("");
+  const [editRole, setEditRole] = useState("student");
+  const [editNim, setEditNim] = useState("");
+  const [editProgramStudi, setEditProgramStudi] = useState("");
+  const [editFakultas, setEditFakultas] = useState("");
+  const [editingUser, setEditingUser] = useState(false);
+  const [deletingId, setDeletingId] = useState<any>(null);
+
+  const openAddForRole = (role: string) => {
+    setNewRole(role);
+    setShowAddModal(true);
+  };
+
+  const handleCreateUser = async () => {
+    setCreatingUser(true);
+    setCreateError(null);
+    try {
+      const payload: any = {
+        role: newRole,
+      };
+      if (newEmail.trim()) payload.email = newEmail.trim();
+      if (newUsername.trim()) payload.username = newUsername.trim();
+      if (newProgramStudi.trim()) payload.jurusan = newProgramStudi.trim();
+      if (newFakultas.trim()) payload.fakultas = newFakultas.trim();
+      if (newNim.trim()) {
+        const idKey = (newRole === "dosen" || newRole === "kaprodi") ? "nidn" : "nomor_induk";
+        payload[idKey] = newNim.trim();
+      }
+
+      const table = profilesTableName ?? "profiles";
+      const res = await supabase.from(table).insert([payload]).select("*");
+      if (res.error) {
+        const err = res.error as any;
+        console.error(`Gagal membuat user di '${table}':`, {
+          status: (res as any).status,
+          statusText: (res as any).statusText,
+          errorMessage: err?.message,
+          error: err,
+          data: res.data,
+        });
+        const msg = err?.message ?? JSON.stringify(err) ?? "Gagal membuat user.";
+        setCreateError(msg);
+      } else {
+        setShowAddModal(false);
+        setNewEmail("");
+        setNewUsername("");
+        setNewRole("student");
+        setNewNim("");
+        setNewProgramStudi("");
+        setNewFakultas("");
+        setCreateError(null);
+        await fetchUsers();
+      }
+    } catch (err: any) {
+      console.error("Unexpected error saat membuat user:", err);
+      const msg = err?.message ?? JSON.stringify(err);
+      setCreateError(msg);
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
+  const openEditForUser = (u: any) => {
+    const id = u.id ?? u.user_id ?? u.uuid ?? null;
+    if (!id) {
+      alert("Tidak dapat mengedit: id user tidak ditemukan.");
+      return;
+    }
+    setEditId(id);
+    setEditEmail(u.email ?? u.user_email ?? "");
+    setEditUsername(u.username ?? "");
+    setEditRole((u.role ?? u.user_role) ?? "student");
+    setEditNim(resolveIdForRole(u));
+    setEditProgramStudi(u.jurusan ?? u.program_studi ?? u.prodi ?? "");
+    setEditFakultas(u.fakultas ?? u.faculty ?? u.department ?? "");
+    setShowEditModal(true);
+  };
+
+  const handleEditUser = async () => {
+    if (!editId) return;
+    setEditingUser(true);
+    try {
+      const payload: any = {
+        role: editRole,
+      };
+      if (editEmail.trim()) payload.email = editEmail.trim();
+      if (editUsername.trim()) payload.username = editUsername.trim();
+      if (editProgramStudi.trim()) payload.jurusan = editProgramStudi.trim();
+      if (editFakultas.trim()) payload.fakultas = editFakultas.trim();
+      if (editNim.trim()) {
+        const idKey = (editRole === "dosen" || editRole === "kaprodi") ? "nidn" : "nomor_induk";
+        payload[idKey] = editNim.trim();
+      }
+
+      const table = profilesTableName ?? "profiles";
+      const { data, error } = await supabase.from(table).update(payload).eq("id", editId).select();
+      if (error) {
+        console.error(`Gagal mengupdate user di '${table}':`, error);
+        alert("Gagal mengupdate user: " + error.message);
+      } else {
+        setShowEditModal(false);
+        setEditId(null);
+        await fetchUsers();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setEditingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (u: any) => {
+    const id = u.id ?? u.user_id ?? u.uuid ?? null;
+    if (!id) {
+      alert("Tidak dapat menghapus: id user tidak ditemukan.");
+      return;
+    }
+    const ok = confirm(`Hapus pengguna ${u.full_name ?? u.name ?? u.username ?? id}?`);
+    if (!ok) return;
+    setDeletingId(id);
+    try {
+      const table = profilesTableName ?? "profiles";
+      const { error } = await supabase.from(table).delete().eq("id", id);
+      if (error) {
+        console.error(`Gagal menghapus user di '${table}':`, error);
+        alert("Gagal menghapus user: " + error.message);
+      } else {
+        await fetchUsers();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Filter users berdasarkan role
   const getStudents = () =>
@@ -134,8 +286,53 @@ export default function SettingsPage() {
       if (typeof val === "string" && val.includes("@")) return val;
     }
 
-    // fallback to username/name
-    return u?.username ?? u?.name ?? u?.nama ?? "-";
+    // fallback to username/name/full_name
+    return u?.full_name ?? u?.name ?? u?.username ?? "-";
+  };
+
+  const resolveNim = (u: any) => {
+    if (!u) return "-";
+    // prefer NIM for students, but if user role is dosen/kaprodi prefer NIDN
+    const role = (u.role ?? u.user_role ?? "").toString().toLowerCase();
+    const nidnCandidates = ["nidn", "nidn_number", "nomor_dosen", "nidn_id"];
+    const nimCandidates = ["nomor_induk", "nim", "nim_user", "student_id"];
+    if (role === "dosen" || role === "kaprodi" || role === "lecturer" || role === "admin") {
+      for (const k of nidnCandidates) if (u[k]) return u[k];
+      for (const k of nimCandidates) if (u[k]) return u[k];
+    }
+    for (const k of nimCandidates) if (u[k]) return u[k];
+    for (const k of nidnCandidates) if (u[k]) return u[k];
+    return "-";
+  };
+
+  // Resolve identifier (nim for students, nidn for dosen/kaprodi) from a user object.
+  const resolveIdForRole = (u: any, roleOverride?: string) => {
+    if (!u) return "";
+    const role = (roleOverride ?? u.role ?? u.user_role ?? "").toString().toLowerCase();
+    const nidnCandidates = ["nidn", "nidn_number", "nomor_dosen", "nidn_id"];
+    const nimCandidates = ["nomor_induk", "nim", "nim_user", "student_id"];
+    if (role === "dosen" || role === "kaprodi" || role === "lecturer" || role === "admin") {
+      for (const k of nidnCandidates) if (u[k]) return u[k];
+      for (const k of nimCandidates) if (u[k]) return u[k];
+    } else {
+      for (const k of nimCandidates) if (u[k]) return u[k];
+      for (const k of nidnCandidates) if (u[k]) return u[k];
+    }
+    return "";
+  };
+
+  const resolveFakultas = (u: any) => {
+    if (!u) return "-";
+    return (
+      u.fakultas ?? u.faculty ?? u.department ?? u.unit ?? u.kampus ?? "-"
+    );
+  };
+
+  const resolveProdi = (u: any) => {
+    if (!u) return "-";
+    return (
+      u.jurusan ?? u.program_studi ?? u.prodi ?? u.major ?? u.study_program ?? "-"
+    );
   };
 
   // User Table Component
@@ -144,39 +341,45 @@ export default function SettingsPage() {
     icon,
     users,
     colorClass,
+    onAdd,
   }: {
     title: string;
     icon: string;
     users: any[];
     colorClass: string;
+    onAdd?: () => void;
   }) => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
-      <div className={`px-6 py-4 ${colorClass} flex items-center gap-3`}>
-        <span className="text-2xl">{icon}</span>
-        <div>
-          <h3 className="text-lg font-bold text-white">{title}</h3>
-          <p className="text-sm text-white/80">
-            {users.length} pengguna terdaftar
-          </p>
+      <div className={`px-6 py-4 ${colorClass} flex items-center justify-between gap-3`}>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{icon}</span>
+          <div>
+            <h3 className="text-lg font-bold text-white">{title}</h3>
+            <p className="text-sm text-white/80">{users.length} pengguna terdaftar</p>
+          </div>
         </div>
+        {onAdd && (
+          <div>
+            <button
+              onClick={onAdd}
+              className="px-3 py-1 bg-white/90 text-slate-800 rounded-md text-sm font-medium hover:bg-white"
+            >
+              + Tambah
+            </button>
+          </div>
+        )}
       </div>
       {users.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 border-b">
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">
-                  Nama
-                </th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">
-                  Email
-                </th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">
-                  Role
-                </th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">
-                  Aksi
-                </th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Nama</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">NIM / NIDN</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Fakultas</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Program Studi</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Role</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -188,16 +391,18 @@ export default function SettingsPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center font-bold text-slate-600">
-                        {(u.nama ?? u.name ?? u.full_name ?? "?")
+                        {((u.full_name ?? u.name ?? u.username ?? "?") as string)
                           .charAt(0)
                           .toUpperCase()}
                       </div>
                       <span className="font-medium text-slate-900">
-                        {u.nama ?? u.name ?? u.full_name ?? u.username ?? "-"}
+                        {u.full_name ?? u.name ?? u.username ?? "-"}
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-slate-600">{resolveEmail(u)}</td>
+                  <td className="px-6 py-4 text-slate-600">{resolveNim(u)}</td>
+                  <td className="px-6 py-4 text-slate-600">{resolveFakultas(u)}</td>
+                  <td className="px-6 py-4 text-slate-600">{resolveProdi(u)}</td>
                   <td className="px-6 py-4">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${getRoleBadge(
@@ -211,6 +416,7 @@ export default function SettingsPage() {
                   <td className="px-6 py-4">
                     <div className="flex justify-center gap-2">
                       <button
+                        onClick={() => openEditForUser(u)}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Edit"
                       >
@@ -230,6 +436,7 @@ export default function SettingsPage() {
                         </svg>
                       </button>
                       <button
+                        onClick={() => handleDeleteUser(u)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Hapus"
                       >
@@ -317,6 +524,7 @@ export default function SettingsPage() {
             <div>
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              
                 <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
                   <div className="flex items-center justify-between">
                     <div>
@@ -369,22 +577,160 @@ export default function SettingsPage() {
                 title="Mahasiswa"
                 icon="🎓"
                 users={getStudents()}
+                onAdd={() => openAddForRole("student")}
                 colorClass="bg-gradient-to-r from-blue-600 to-blue-700"
               />
               <UserTable
                 title="Dosen"
                 icon="👨‍🏫"
                 users={getDosen()}
+                onAdd={() => openAddForRole("dosen")}
                 colorClass="bg-gradient-to-r from-green-600 to-green-700"
               />
               <UserTable
                 title="Kaprodi / Admin"
                 icon="👔"
                 users={getKaprodi()}
+                onAdd={() => openAddForRole("kaprodi")}
                 colorClass="bg-gradient-to-r from-purple-600 to-purple-700"
               />
             </div>
           )}
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6">
+            <h3 className="text-lg font-bold mb-4">Tambah Pengguna</h3>
+            <div className="grid grid-cols-1 gap-3">
+              {createError && (
+                <div className="text-sm text-red-600 p-2 rounded bg-red-50">
+                  {createError}
+                </div>
+              )}
+              <input
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="Email"
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+              <input
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="Username (opsional)"
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+              <input
+                value={newNim}
+                onChange={(e) => setNewNim(e.target.value)}
+                placeholder="Nomor Induk / NIM / NIDN (opsional)"
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+              <input
+                value={newProgramStudi}
+                onChange={(e) => setNewProgramStudi(e.target.value)}
+                placeholder="Program Studi (jurusan)"
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+              <input
+                value={newFakultas}
+                onChange={(e) => setNewFakultas(e.target.value)}
+                placeholder="Fakultas"
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border"
+              >
+                <option value="student">Mahasiswa</option>
+                <option value="dosen">Dosen</option>
+                <option value="kaprodi">Kaprodi / Admin</option>
+              </select>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 rounded-lg border"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleCreateUser}
+                disabled={creatingUser}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60"
+              >
+                {creatingUser ? "Membuat..." : "Buat Pengguna"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6">
+            <h3 className="text-lg font-bold mb-4">Edit Pengguna</h3>
+            <div className="grid grid-cols-1 gap-3">
+              <input
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                placeholder="Email"
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+              <input
+                value={editUsername}
+                onChange={(e) => setEditUsername(e.target.value)}
+                placeholder="Username (opsional)"
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+              <input
+                value={editNim}
+                onChange={(e) => setEditNim(e.target.value)}
+                placeholder="Nomor Induk / NIM / NIDN (opsional)"
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+              <input
+                value={editProgramStudi}
+                onChange={(e) => setEditProgramStudi(e.target.value)}
+                placeholder="Program Studi (jurusan)"
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+              <input
+                value={editFakultas}
+                onChange={(e) => setEditFakultas(e.target.value)}
+                placeholder="Fakultas"
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+              <select
+                value={editRole}
+                onChange={(e) => setEditRole(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border"
+              >
+                <option value="student">Mahasiswa</option>
+                <option value="dosen">Dosen</option>
+                <option value="kaprodi">Kaprodi / Admin</option>
+              </select>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 rounded-lg border"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleEditUser}
+                disabled={editingUser}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
+              >
+                {editingUser ? "Menyimpan..." : "Simpan Perubahan"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
