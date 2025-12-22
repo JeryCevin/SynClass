@@ -54,11 +54,26 @@ SynClass adalah aplikasi web modern berbasis Next.js yang dirancang untuk mengel
 
 ### 📄 Kartu Rencana Studi (KRS)
 
-- **Mata Kuliah Tersedia** - Daftar mata kuliah yang ditawarkan semester ini
-- **Pengambilan Mata Kuliah** - Fitur untuk mengambil atau membatalkan mata kuliah
-- **Status Ketersediaan** - Indikator kelas penuh atau tersedia
-- **Total SKS** - Perhitungan otomatis total SKS yang diambil
-- **Ajukan KRS** - Tombol untuk mengajukan KRS ke sistem
+Fitur KRS memiliki **dua tampilan berbeda** berdasarkan role pengguna:
+
+#### 👨‍🎓 Tampilan Mahasiswa
+
+- **Daftar Mata Kuliah Tersedia** - Menampilkan mata kuliah yang belum pernah diambil
+- **Pengelompokan Semester** - Mata kuliah dikelompokkan berdasarkan semester
+- **Pemilihan Interaktif** - Checkbox untuk memilih mata kuliah yang diinginkan
+- **Kalkulasi SKS Otomatis** - Total SKS dihitung secara real-time (maks. 24 SKS)
+- **Status Pengajuan** - Menampilkan status (pending/approved/rejected)
+- **Edit Pengajuan** - Dapat mengubah pengajuan selama belum disetujui
+- **Catatan Kaprodi** - Melihat feedback dari Kaprodi jika ada
+
+#### 👔 Tampilan Kaprodi
+
+- **Dashboard Summary** - Statistik total, pending, approved, rejected
+- **Daftar Pengajuan** - List semua pengajuan KRS mahasiswa
+- **Detail Review** - Melihat detail mata kuliah yang diajukan
+- **Approve/Reject** - Menyetujui atau menolak pengajuan
+- **Catatan** - Memberikan catatan/feedback ke mahasiswa
+- **Auto-Record** - Mata kuliah otomatis tercatat saat disetujui
 
 ### 📊 Kartu Hasil Studi (KHS)
 
@@ -287,6 +302,80 @@ npm run lint
 4. Isi form: Kode MK, Nama MK, SKS, dan Semester
 5. Data akan tersimpan ke database Supabase
 
+### Pengajuan KRS (Mahasiswa)
+
+1. Login sebagai **Mahasiswa**
+2. Buka menu **KRS** di sidebar
+3. Lihat daftar mata kuliah yang tersedia (dikelompokkan per semester)
+4. Klik pada mata kuliah untuk memilih/membatalkan
+5. Perhatikan **Total SKS** di sidebar kanan (maksimal 24 SKS)
+6. Klik tombol **Ajukan KRS** untuk mengirim pengajuan
+7. Tunggu persetujuan dari Kaprodi
+8. Cek status pengajuan di bagian atas halaman:
+   - 🟡 **Pending** - Menunggu persetujuan
+   - 🟢 **Approved** - Disetujui (tidak dapat diubah)
+   - 🔴 **Rejected** - Ditolak (dapat mengajukan ulang)
+
+### Persetujuan KRS (Kaprodi)
+
+1. Login sebagai **Kaprodi**
+2. Buka menu **KRS** di sidebar
+3. Lihat **Dashboard Summary** untuk statistik pengajuan
+4. Pilih pengajuan dari daftar di sebelah kiri
+5. Review detail pengajuan di panel kanan:
+   - Nama dan jurusan mahasiswa
+   - Daftar mata kuliah yang diajukan
+   - Total SKS
+6. (Opsional) Tambahkan catatan untuk mahasiswa
+7. Klik **Setujui** atau **Tolak**
+8. Jika disetujui, mata kuliah otomatis tercatat ke riwayat mahasiswa
+
+### Alur Kerja KRS
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         ALUR KRS                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
+│  │  MAHASISWA   │    │   KAPRODI    │    │   SISTEM     │      │
+│  └──────┬───────┘    └──────┬───────┘    └──────┬───────┘      │
+│         │                   │                   │               │
+│         │ 1. Pilih MK       │                   │               │
+│         ├──────────────────►│                   │               │
+│         │                   │                   │               │
+│         │ 2. Ajukan KRS     │                   │               │
+│         ├──────────────────►│                   │               │
+│         │                   │                   │               │
+│         │    [PENDING]      │ 3. Review         │               │
+│         │◄──────────────────┤    Pengajuan      │               │
+│         │                   │                   │               │
+│         │                   │ 4. Approve/Reject │               │
+│         │                   ├──────────────────►│               │
+│         │                   │                   │               │
+│         │  [APPROVED]       │                   │ 5. Simpan ke  │
+│         │◄──────────────────┤◄──────────────────┤    Riwayat    │
+│         │                   │                   │               │
+│         │  [REJECTED]       │                   │               │
+│         │◄──────────────────┤                   │               │
+│         │                   │                   │               │
+│         │ 6. Edit &         │                   │               │
+│         │    Ajukan Ulang   │                   │               │
+│         ├──────────────────►│                   │               │
+│         │                   │                   │               │
+└─────────┴───────────────────┴───────────────────┴───────────────┘
+```
+
+### Aturan Bisnis KRS
+
+| Aturan                   | Keterangan                                 |
+| ------------------------ | ------------------------------------------ |
+| **Maksimal SKS**         | 24 SKS per semester                        |
+| **Mata Kuliah Tersedia** | Hanya yang belum pernah diambil            |
+| **Edit Pengajuan**       | Hanya saat status pending atau rejected    |
+| **Pengajuan Disetujui**  | Tidak dapat diubah, MK tercatat di riwayat |
+| **Semester Aktif**       | Pengajuan hanya untuk semester berjalan    |
+
 ---
 
 ## 👥 Peran Pengguna
@@ -303,10 +392,54 @@ npm run lint
 
 ### Tabel Database
 
-| Tabel        | Deskripsi                                                |
-| ------------ | -------------------------------------------------------- |
-| `profiles`   | Data profil pengguna (nama, email, role, NIM/NIDN, dll.) |
-| `matakuliah` | Data mata kuliah (kode, nama, SKS, semester)             |
+| Tabel                | Deskripsi                                                |
+| -------------------- | -------------------------------------------------------- |
+| `profiles`           | Data profil pengguna (nama, email, role, NIM/NIDN, dll.) |
+| `matakuliah`         | Data mata kuliah (kode, nama, SKS, semester)             |
+| `krs_pengajuan`      | Header pengajuan KRS (mahasiswa, semester, status)       |
+| `krs_detail`         | Detail mata kuliah dalam pengajuan KRS                   |
+| `matakuliah_diambil` | Riwayat mata kuliah yang sudah diambil/disetujui         |
+
+### Schema Tabel KRS
+
+```sql
+-- Tabel pengajuan KRS (header)
+CREATE TABLE krs_pengajuan (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  mahasiswa_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  semester TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  catatan TEXT,
+  total_sks INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Tabel detail mata kuliah dalam pengajuan
+CREATE TABLE krs_detail (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  krs_pengajuan_id UUID REFERENCES krs_pengajuan(id) ON DELETE CASCADE,
+  matakuliah_id INTEGER REFERENCES matakuliah(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Tabel riwayat mata kuliah yang sudah diambil
+CREATE TABLE matakuliah_diambil (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  mahasiswa_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  matakuliah_id INTEGER REFERENCES matakuliah(id) ON DELETE CASCADE,
+  semester TEXT NOT NULL,
+  nilai TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(mahasiswa_id, matakuliah_id)
+);
+
+-- Index untuk performa
+CREATE INDEX idx_krs_pengajuan_mahasiswa ON krs_pengajuan(mahasiswa_id);
+CREATE INDEX idx_krs_pengajuan_status ON krs_pengajuan(status);
+CREATE INDEX idx_krs_detail_pengajuan ON krs_detail(krs_pengajuan_id);
+CREATE INDEX idx_matakuliah_diambil_mahasiswa ON matakuliah_diambil(mahasiswa_id);
+```
 
 ### Supabase Client
 
