@@ -137,38 +137,106 @@ export default function KHSPage() {
     if (error) console.error("Error fetching grades:", error);
   };
 
-  // Fetch kelas untuk Dosen
+  // Fetch kelas/matakuliah untuk Dosen (dari tabel matakuliah berdasarkan dosen_id)
   const fetchDosenKelas = async (dosenId: string) => {
     const { data, error } = await supabase
-      .from("kelas")
-      .select(
-        `
-        *,
-        matakuliah (*)
-      `
-      )
+      .from("matakuliah")
+      .select("*")
       .eq("dosen_id", dosenId)
-      .order("semester", { ascending: false });
+      .order("semester", { ascending: true });
 
-    if (data) setKelasList(data);
-    if (error) console.error("Error fetching kelas:", error);
+    if (data) {
+      // Transform matakuliah to Kelas format for compatibility
+      const kelasData: Kelas[] = data.map((mk) => ({
+        id: mk.id.toString(),
+        matakuliah_id: mk.id,
+        dosen_id: dosenId,
+        semester: `Semester ${mk.semester}`,
+        hari: "-",
+        jam: "-",
+        ruangan: "-",
+        matakuliah: mk,
+      }));
+      setKelasList(kelasData);
+    }
+    if (error) console.error("Error fetching matakuliah:", error);
   };
 
-  // Fetch mahasiswa dalam kelas
+  // Fetch mahasiswa yang mengambil mata kuliah ini (dari krs_detail yang approved)
   const fetchKelasMahasiswa = async (kelasId: string) => {
-    const { data, error } = await supabase
-      .from("kelas_mahasiswa")
-      .select(
-        `
-        *,
-        profiles (id, username, jurusan)
-      `
-      )
-      .eq("kelas_id", kelasId)
-      .order("created_at", { ascending: true });
+    // kelasId di sini adalah matakuliah_id (karena kita transform dari matakuliah)
+    const matakuliahId = parseInt(kelasId);
 
-    if (data) setMahasiswaList(data);
-    if (error) console.error("Error fetching mahasiswa:", error);
+    try {
+      // Step 1: Get all krs_detail for this matakuliah
+      const { data: krsDetails, error: krsError } = await supabase
+        .from("krs_detail")
+        .select(
+          `
+          id,
+          matakuliah_id,
+          nilai_huruf,
+          nilai_angka,
+          krs_pengajuan_id
+        `
+        )
+        .eq("matakuliah_id", matakuliahId);
+
+      if (krsError) throw krsError;
+      if (!krsDetails || krsDetails.length === 0) {
+        setMahasiswaList([]);
+        return;
+      }
+
+      // Step 2: Get the krs_pengajuan to filter by approved status
+      const pengajuanIds = [
+        ...new Set(krsDetails.map((d) => d.krs_pengajuan_id)),
+      ];
+      const { data: pengajuanData, error: pengajuanError } = await supabase
+        .from("krs_pengajuan")
+        .select("id, mahasiswa_id, status")
+        .in("id", pengajuanIds)
+        .eq("status", "approved");
+
+      if (pengajuanError) throw pengajuanError;
+      if (!pengajuanData || pengajuanData.length === 0) {
+        setMahasiswaList([]);
+        return;
+      }
+
+      // Step 3: Get mahasiswa profiles
+      const mahasiswaIds = pengajuanData.map((p) => p.mahasiswa_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, username, jurusan")
+        .in("id", mahasiswaIds);
+
+      if (profilesError) throw profilesError;
+
+      // Step 4: Combine the data
+      const approvedPengajuanMap = new Map(pengajuanData.map((p) => [p.id, p]));
+      const profilesMap = new Map(profilesData?.map((p) => [p.id, p]) || []);
+
+      const mahasiswaData: KelasMahasiswa[] = krsDetails
+        .filter((detail) => approvedPengajuanMap.has(detail.krs_pengajuan_id))
+        .map((detail) => {
+          const pengajuan = approvedPengajuanMap.get(detail.krs_pengajuan_id);
+          const profile = profilesMap.get(pengajuan?.mahasiswa_id || "");
+          return {
+            id: detail.id.toString(),
+            kelas_id: kelasId,
+            mahasiswa_id: pengajuan?.mahasiswa_id || "",
+            nilai_huruf: detail.nilai_huruf,
+            nilai_angka: detail.nilai_angka,
+            profiles: profile || { id: "", username: "Unknown", jurusan: "-" },
+          };
+        });
+
+      setMahasiswaList(mahasiswaData);
+    } catch (err) {
+      console.error("Error fetching mahasiswa:", err);
+      setMahasiswaList([]);
+    }
   };
 
   // Select kelas (Dosen)
@@ -177,7 +245,7 @@ export default function KHSPage() {
     await fetchKelasMahasiswa(kelas.id);
   };
 
-  // Update nilai mahasiswa (Dosen)
+  // Update nilai mahasiswa (Dosen) - update di krs_detail
   const handleUpdateNilai = async (
     kelasMahasiswaId: string,
     gradeOption: GradeOption | null
@@ -185,14 +253,14 @@ export default function KHSPage() {
     setSavingId(kelasMahasiswaId);
 
     try {
+      // Update di krs_detail
       const { error } = await supabase
-        .from("kelas_mahasiswa")
+        .from("krs_detail")
         .update({
           nilai_huruf: gradeOption?.huruf || null,
           nilai_angka: gradeOption?.angka || null,
-          updated_at: new Date().toISOString(),
         })
-        .eq("id", kelasMahasiswaId);
+        .eq("id", parseInt(kelasMahasiswaId));
 
       if (error) throw error;
 
