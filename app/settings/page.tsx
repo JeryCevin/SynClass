@@ -9,6 +9,12 @@ interface MataKuliah {
   nama_mk: string;
   sks: number;
   semester: number;
+  dosen_id?: string | null;
+  profiles?: {
+    id: string;
+    username: string;
+    role: string;
+  };
 }
 
 export default function SettingsPage() {
@@ -31,7 +37,11 @@ export default function SettingsPage() {
     nama_mk: "",
     sks: 3,
     semester: 1,
+    dosen_id: null,
   });
+
+  // Dosen list untuk dropdown pengampu
+  const [dosenList, setDosenList] = useState<any[]>([]);
   const [savingCourse, setSavingCourse] = useState(false);
   const [courseFormError, setCourseFormError] = useState<string | null>(null);
 
@@ -47,7 +57,12 @@ export default function SettingsPage() {
     try {
       const { data, error } = await supabase
         .from("matakuliah")
-        .select("*")
+        .select(
+          `
+          *,
+          profiles:dosen_id (id, username, role)
+        `
+        )
         .order("semester", { ascending: true })
         .order("kode_mk", { ascending: true });
 
@@ -102,10 +117,25 @@ export default function SettingsPage() {
     fetchCourses();
   }, []);
 
+  // Update dosen list when users change (include kaprodi as eligible pengampu)
+  useEffect(() => {
+    const pengampu = users.filter((u) => {
+      const role = (u.role ?? u.user_role)?.toLowerCase();
+      return role === "dosen" || role === "lecturer" || role === "kaprodi";
+    });
+    setDosenList(pengampu);
+  }, [users]);
+
   // CRUD Mata Kuliah
   const openAddCourse = () => {
     setEditingCourse(null);
-    setCourseForm({ kode_mk: "", nama_mk: "", sks: 3, semester: 1 });
+    setCourseForm({
+      kode_mk: "",
+      nama_mk: "",
+      sks: 3,
+      semester: 1,
+      dosen_id: null,
+    });
     setCourseFormError(null);
     setShowCourseModal(true);
   };
@@ -117,6 +147,7 @@ export default function SettingsPage() {
       nama_mk: course.nama_mk,
       sks: course.sks,
       semester: course.semester,
+      dosen_id: course.dosen_id || null,
     });
     setCourseFormError(null);
     setShowCourseModal(true);
@@ -141,6 +172,7 @@ export default function SettingsPage() {
             nama_mk: courseForm.nama_mk.trim(),
             sks: courseForm.sks,
             semester: courseForm.semester,
+            dosen_id: courseForm.dosen_id || null,
           })
           .eq("id", editingCourse.id);
 
@@ -156,6 +188,7 @@ export default function SettingsPage() {
             nama_mk: courseForm.nama_mk.trim(),
             sks: courseForm.sks,
             semester: courseForm.semester,
+            dosen_id: courseForm.dosen_id || null,
           },
         ]);
 
@@ -1137,9 +1170,19 @@ export default function SettingsPage() {
                             <h4 className="font-semibold text-slate-900 mb-2">
                               {course.nama_mk}
                             </h4>
-                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <div className="flex flex-col gap-1.5 text-sm text-slate-600">
                               <span className="flex items-center gap-1">
                                 <span>📘</span> {course.sks} SKS
+                              </span>
+                              <span className="flex items-center gap-1 text-xs">
+                                <span>👤</span>
+                                {course.profiles?.username ? (
+                                  course.profiles.username
+                                ) : (
+                                  <span className="italic text-slate-400">
+                                    Belum ada pengampu
+                                  </span>
+                                )}
                               </span>
                             </div>
                           </div>
@@ -1257,6 +1300,34 @@ export default function SettingsPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Dosen Pengampu
+                </label>
+                <select
+                  value={courseForm.dosen_id || ""}
+                  onChange={(e) =>
+                    setCourseForm({
+                      ...courseForm,
+                      dosen_id: e.target.value || null,
+                    })
+                  }
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">-- Belum Ditentukan --</option>
+                  {dosenList.map((dosen) => (
+                    <option key={dosen.id} value={dosen.id}>
+                      {dosen.username ||
+                        dosen.email ||
+                        `Dosen ${dosen.id.substring(0, 8)}`}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 mt-1">
+                  Pilih dosen yang akan mengampu mata kuliah ini
+                </p>
               </div>
             </div>
 
