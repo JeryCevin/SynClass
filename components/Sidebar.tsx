@@ -12,17 +12,33 @@ export default function Sidebar() {
   
   const [role, setRole] = useState<Role | null>(null);
   const [isOpen, setIsOpen] = useState(true);
+  
+  // 1. TAMBAHAN PENTING: State untuk mengecek apakah sudah di browser
+  const [isMounted, setIsMounted] = useState(false);
 
-  // 1. Cek Login & Role saat komponen dimuat
   useEffect(() => {
-    // Ambil role dari LocalStorage (hasil login tadi)
-    const storedRole = localStorage.getItem("user_role") as Role;
-    if (storedRole) setRole(storedRole);
-  }, []);
+    // Menandai bahwa komponen sudah siap dirender di browser
+    setIsMounted(true);
 
-  // 2. JANGAN TAMPILKAN Sidebar jika sedang di halaman Login
+    // Cek Role dari LocalStorage
+    const checkRole = () => {
+      const storedRole = localStorage.getItem("user_role") as Role;
+      if (storedRole) {
+        setRole(storedRole);
+      }
+    };
+
+    checkRole();
+  }, [pathname]); // 2. TAMBAHAN PENTING: Cek ulang setiap URL berubah
+
+  // Jika sedang di halaman Login, Sembunyikan Sidebar
   if (pathname === "/login") {
     return null;
+  }
+
+  // 3. TAMBAHAN PENTING: Jangan render apa-apa kalau belum mounted (Mencegah Error di Vercel)
+  if (!isMounted) {
+    return null; 
   }
 
   // Fungsi Logout
@@ -31,7 +47,7 @@ export default function Sidebar() {
     router.push("/login");
   };
 
-  // 3. Konfigurasi Menu Sesuai Use Case
+  // Konfigurasi Menu
   const allMenus = [
     { label: "Dashboard", icon: "🏠", href: "/", roles: ["kaprodi", "dosen", "mahasiswa"] },
     { label: "Profil", icon: "👤", href: "/profil", roles: ["kaprodi", "dosen", "mahasiswa"] },
@@ -46,7 +62,7 @@ export default function Sidebar() {
   const visibleMenus = allMenus.filter((menu) => role && menu.roles.includes(role));
 
   return (
-    <aside className={`${isOpen ? "w-64" : "w-20"} bg-slate-900 text-white transition-all duration-300 flex flex-col min-h-screen sticky top-0 h-screen`}>
+    <aside className={`${isOpen ? "w-64" : "w-20"} bg-slate-900 text-white transition-all duration-300 flex flex-col min-h-screen sticky top-0 h-screen z-50`}>
       <div className="p-5 flex items-center justify-between border-b border-slate-700">
         <h1 className={`font-bold text-xl text-blue-400 ${!isOpen && "hidden"}`}>SynClass</h1>
         <button onClick={() => setIsOpen(!isOpen)} className="text-gray-400 hover:text-white">
@@ -55,6 +71,13 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {/* Fallback jika role belum terbaca tapi sudah mounted */}
+        {role === null && (
+           <div className="text-center text-gray-500 text-xs animate-pulse mt-4">
+              Memuat menu...
+           </div>
+        )}
+
         {visibleMenus.map((menu) => {
           const isActive = pathname === menu.href;
           return (
