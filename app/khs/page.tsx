@@ -105,7 +105,12 @@ export default function KHSPage() {
       if (user) {
         setUserId(user.id);
 
-        if (userRole === "dosen" || userRole === "kaprodi") {
+        const normalizedRole = userRole.toLowerCase();
+        if (
+          normalizedRole === "dosen" ||
+          normalizedRole === "kaprodi" ||
+          normalizedRole === "lecturer"
+        ) {
           await fetchDosenKelas(user.id);
         } else {
           await fetchMahasiswaGrades(user.id);
@@ -336,7 +341,12 @@ export default function KHSPage() {
   }
 
   // ========== TAMPILAN DOSEN ==========
-  if (role === "dosen" || role === "kaprodi") {
+  const normalizedRole = role.toLowerCase();
+  if (
+    normalizedRole === "dosen" ||
+    normalizedRole === "kaprodi" ||
+    normalizedRole === "lecturer"
+  ) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
         {/* Header */}
