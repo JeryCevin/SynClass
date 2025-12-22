@@ -94,7 +94,7 @@ Fitur KRS memiliki **dua tampilan berbeda** berdasarkan role pengguna:
 
 #### 📚 Manajemen Mata Kuliah
 
-- **CRUD Lengkap** - Tambah, baca, ubah, dan hapus mata kuliah
+- **CRUD Lengkap** - Tambah, baca, ubah, hapus mata kuliah
 - **Pengelompokan Semester** - Mata kuliah dikelompokkan berdasarkan semester
 - **Pencarian** - Fitur pencarian berdasarkan kode atau nama mata kuliah
 - **Statistik** - Total mata kuliah, total SKS, jumlah semester
