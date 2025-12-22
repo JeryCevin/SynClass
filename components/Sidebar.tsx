@@ -51,15 +51,20 @@ export default function Sidebar() {
   const allMenus = [
     { label: "Dashboard", icon: "🏠", href: "/", roles: ["kaprodi", "dosen", "mahasiswa"] },
     { label: "Profil", icon: "👤", href: "/profil", roles: ["kaprodi", "dosen", "mahasiswa"] },
-    { label: "Manage User", icon: "👥", href: "/manage-user", roles: ["kaprodi"] },
     { label: "List Kelas", icon: "📚", href: "/list-kelas", roles: ["kaprodi", "dosen", "mahasiswa"] },
     { label: "KRS", icon: "📄", href: "/krs", roles: ["kaprodi", "dosen", "mahasiswa"] },
     { label: "KHS", icon: "📊", href: "/khs", roles: ["kaprodi", "dosen", "mahasiswa"] },
     { label: "Pengaturan", icon: "⚙️", href: "/settings", roles: ["kaprodi", "dosen", "mahasiswa"] },
   ];
 
-  // Filter menu berdasarkan Role
-  const visibleMenus = allMenus.filter((menu) => role && menu.roles.includes(role));
+  // Filter menu berdasarkan Role — enforce explicit allowed menus per role
+  const roleAllowed: Record<Role, string[]> = {
+    mahasiswa: ["/", "/profil", "/list-kelas", "/krs", "/khs"],
+    dosen: ["/", "/profil", "/list-kelas", "/khs"],
+    kaprodi: allMenus.map((m) => m.href as string),
+  };
+
+  const visibleMenus = role ? allMenus.filter((menu) => roleAllowed[role].includes(menu.href)) : [];
 
   return (
     <aside className={`${isOpen ? "w-64" : "w-20"} bg-slate-900 text-white transition-all duration-300 flex flex-col min-h-screen sticky top-0 h-screen z-50`}>
