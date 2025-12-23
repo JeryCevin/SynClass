@@ -14,14 +14,14 @@ export default function ProfilPage() {
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [updatingPassword, setUpdatingPassword] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
+
   // Data dummy yang nanti akan diganti dengan data dari Supabase
   const [profil, setProfil] = useState({
     nama: "",
     nomorInduk: "", // Bisa NIM atau NIP
     jurusan: "",
     angkatan: "",
-    fakultas: ""
+    fakultas: "",
   });
 
   useEffect(() => {
@@ -45,36 +45,60 @@ export default function ProfilPage() {
         let profileData: any = null;
         let profileError: any = null;
 
-        const byId = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+        const byId = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
         if (byId.error) profileError = byId.error;
         if (byId.data) profileData = byId.data;
 
         if (!profileData) {
-          const byUserId = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
+          const byUserId = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybeSingle();
           if (byUserId.error) profileError = byUserId.error;
           if (byUserId.data) profileData = byUserId.data;
         }
 
         if (!profileData) {
-          const byEmail = await supabase.from("profiles").select("*").eq("email", user.email).maybeSingle();
+          const byEmail = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("email", user.email)
+            .maybeSingle();
           if (byEmail.error) profileError = byEmail.error;
           if (byEmail.data) profileData = byEmail.data;
         }
 
         // If table 'profiles' didn't have data, try singular 'profile' (some schemas use that name)
         if (!profileData) {
-          const pById = await supabase.from("profile").select("*").eq("id", user.id).maybeSingle();
+          const pById = await supabase
+            .from("profile")
+            .select("*")
+            .eq("id", user.id)
+            .maybeSingle();
           if (pById.error) profileError = pById.error;
           if (pById.data) profileData = pById.data;
 
           if (!profileData) {
-            const pByUserId = await supabase.from("profile").select("*").eq("user_id", user.id).maybeSingle();
+            const pByUserId = await supabase
+              .from("profile")
+              .select("*")
+              .eq("user_id", user.id)
+              .maybeSingle();
             if (pByUserId.error) profileError = pByUserId.error;
             if (pByUserId.data) profileData = pByUserId.data;
           }
 
           if (!profileData) {
-            const pByEmail = await supabase.from("profile").select("*").eq("email", user.email).maybeSingle();
+            const pByEmail = await supabase
+              .from("profile")
+              .select("*")
+              .eq("email", user.email)
+              .maybeSingle();
             if (pByEmail.error) profileError = pByEmail.error;
             if (pByEmail.data) profileData = pByEmail.data;
           }
@@ -106,18 +130,28 @@ export default function ProfilPage() {
           profileData.fakultas_name ??
           "";
 
-        if (!resolvedName) console.warn("Profil: kolom nama tidak ditemukan di row 'profile(s)'.");
-        if (!resolvedFakultas) console.warn("Profil: kolom fakultas tidak ditemukan di row 'profile(s)'.");
+        if (!resolvedName)
+          console.warn(
+            "Profil: kolom nama tidak ditemukan di row 'profile(s)'."
+          );
+        if (!resolvedFakultas)
+          console.warn(
+            "Profil: kolom fakultas tidak ditemukan di row 'profile(s)'."
+          );
 
         setProfil({
           nama: resolvedName,
-          nomorInduk: profileData.nomor_induk ?? profileData.nomorInduk ?? profileData.nim ?? profileData.nidn,
+          nomorInduk:
+            profileData.nomor_induk ??
+            profileData.nomorInduk ??
+            profileData.nim ??
+            profileData.nidn,
           jurusan: profileData.jurusan ?? profileData.prodi ?? "",
           angkatan: profileData.angkatan ?? profileData.year ?? "",
-          fakultas: resolvedFakultas
+          fakultas: resolvedFakultas,
         });
 
-        setRole(profileData.role ?? (profileData.user_role ?? "mahasiswa"));
+        setRole(profileData.role ?? profileData.user_role ?? "mahasiswa");
         setEmail(user.email);
       } catch (err: any) {
         setError(err.message || "Gagal mengambil data profil.");
@@ -130,157 +164,239 @@ export default function ProfilPage() {
   }, []);
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Profil Pengguna</h1>
-      {loading && <p className="text-gray-500 mb-4">Memuat profil...</p>}
-      {error && <p className="text-red-600 mb-4">{error}</p>}
-      
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-4xl">
-        
-        {/* HEADER PROFIL (Warna beda sesuai role) */}
-        <div className={`p-8 flex items-center gap-6 text-white
-          ${role === 'mahasiswa' ? 'bg-gradient-to-r from-blue-600 to-blue-400' : 
-            role === 'dosen' ? 'bg-gradient-to-r from-purple-600 to-purple-400' : 'bg-gray-800'}`}>
-          
-          <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-5xl border-4 border-white/30">
-            {role === 'dosen' ? '👨‍🏫' : role === 'kaprodi' ? '👮‍♂️' : '👨‍🎓'}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
+      <header className="mb-8">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-white text-xl">👤</span>
           </div>
-          
           <div>
-            <h2 className="text-2xl font-bold">{profil.nama}</h2>
-            <p className="opacity-90">{email}</p>
-            <div className="mt-2 inline-flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              <span>{role}</span>
-              <span>•</span>
-              {/* Logika Tampilan Status */}
-              <span>{role === 'mahasiswa' ? 'Mahasiswa Aktif' : 'Staf Pengajar'}</span>
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Profil Pengguna
+            </h1>
+            <p className="text-gray-500">Informasi akun dan data diri</p>
           </div>
         </div>
+      </header>
 
-        {/* FORM DATA DIRI */}
-        <div className="p-8">
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* 1. Nama Lengkap (Read Only) */}
-            <div className="col-span-2 md:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-              <input 
-                type="text" 
-                value={profil.nama} 
-                disabled 
-                className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed" 
-              />
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-[#7a1d38] border-t-transparent rounded-full"></div>
+          <span className="ml-3 text-gray-500">Memuat profil...</span>
+        </div>
+      )}
+      {error && !loading && (
+        <p className="text-red-600 mb-4 bg-red-50 p-4 rounded-xl">{error}</p>
+      )}
+
+      {!loading && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden max-w-4xl">
+          {/* HEADER PROFIL */}
+          <div className="bg-gradient-to-r from-[#7a1d38] to-[#5c1529] p-8 flex items-center gap-6 text-white">
+            <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-5xl border-4 border-white/30">
+              {role === "dosen" ? "👨‍🏫" : role === "kaprodi" ? "👮‍♂️" : "👨‍🎓"}
             </div>
 
-            {/* 2. NIM atau NIP (Dinamis Labelnya) */}
-            <div className="col-span-2 md:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {role === 'mahasiswa' ? 'NIM (Nomor Induk Mahasiswa)' : role === 'dosen' ? 'NIP (Nomor Induk Pegawai)' : 'ID User'}
-              </label>
-              <input 
-                type="text" 
-                value={profil.nomorInduk} 
-                disabled 
-                className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 text-gray-600 font-mono cursor-not-allowed" 
-              />
-            </div>
-
-            {/* 3. Jurusan / Prodi */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Program Studi</label>
-              <input 
-                type="text" 
-                value={profil.jurusan} 
-                disabled 
-                className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 text-gray-600" 
-              />
+              <h2 className="text-2xl font-bold">{profil.nama}</h2>
+              <p className="text-white/80">{email}</p>
+              <div className="mt-3 inline-flex items-center gap-2 bg-white/20 px-4 py-1.5 rounded-full text-sm font-semibold capitalize backdrop-blur-sm">
+                <span>{role}</span>
+                <span>•</span>
+                <span>
+                  {role === "mahasiswa" ? "Mahasiswa Aktif" : "Staf Pengajar"}
+                </span>
+              </div>
             </div>
+          </div>
 
-            {/* 4. Fakultas */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fakultas</label>
-              <input 
-                type="text" 
-                value={profil.fakultas} 
-                disabled 
-                className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 text-gray-600" 
-              />
-            </div>
-
-            {/* 5. KHUSUS MAHASISWA: Tampilkan Angkatan */}
-            {role === 'mahasiswa' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Angkatan</label>
-                <input 
-                  type="text" 
-                  value={profil.angkatan} 
-                  disabled 
-                  className="w-full border border-gray-300 p-2.5 rounded-lg bg-gray-50 text-gray-600" 
+          {/* FORM DATA DIRI */}
+          <div className="p-8">
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 1. Nama Lengkap (Read Only) */}
+              <div className="col-span-2 md:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Lengkap
+                </label>
+                <input
+                  type="text"
+                  value={profil.nama}
+                  disabled
+                  className="w-full border border-gray-200 p-3 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
                 />
               </div>
-            )}
 
-          </form>
-
-          {/* Tombol Aksi (Hanya Hiasan dulu) */}
-          <div className="mt-8 pt-6 border-t flex justify-end gap-3">
-             <button onClick={() => { setShowPwdForm(s => !s); setSuccessMessage(null); setError(null); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">Ubah Password</button>
-             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm">
-                Request Edit Data
-             </button>
-          </div>
-
-          {/* Form Ubah Password (tampil ketika diaktifkan) */}
-          {showPwdForm && (
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              setError(null);
-              setSuccessMessage(null);
-              if (newPassword.length < 6) {
-                setError("Password harus minimal 6 karakter.");
-                return;
-              }
-              if (newPassword !== confirmPassword) {
-                setError("Konfirmasi password tidak cocok.");
-                return;
-              }
-              setUpdatingPassword(true);
-              try {
-                const supabase = createClient();
-                const { data, error: updErr } = await supabase.auth.updateUser({ password: newPassword });
-                if (updErr) throw updErr;
-                setSuccessMessage("Password berhasil diubah.");
-                setNewPassword("");
-                setConfirmPassword("");
-                setShowPwdForm(false);
-              } catch (err: any) {
-                setError(err?.message || "Gagal mengubah password.");
-              } finally {
-                setUpdatingPassword(false);
-              }
-            }} className="mt-4 p-4 border rounded-lg bg-gray-50">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password Baru</label>
-                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full border border-gray-300 p-2.5 rounded-lg" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Konfirmasi Password</label>
-                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full border border-gray-300 p-2.5 rounded-lg" />
-                </div>
+              {/* 2. NIM atau NIP (Dinamis Labelnya) */}
+              <div className="col-span-2 md:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {role === "mahasiswa"
+                    ? "NIM (Nomor Induk Mahasiswa)"
+                    : role === "dosen"
+                    ? "NIP (Nomor Induk Pegawai)"
+                    : "ID User"}
+                </label>
+                <input
+                  type="text"
+                  value={profil.nomorInduk}
+                  disabled
+                  className="w-full border border-gray-200 p-3 rounded-xl bg-gray-50 text-gray-600 font-mono cursor-not-allowed"
+                />
               </div>
-              <div className="mt-4 flex items-center gap-3 justify-end">
-                <button type="button" onClick={() => { setShowPwdForm(false); setError(null); setSuccessMessage(null); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
-                <button type="submit" disabled={updatingPassword} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">{updatingPassword ? 'Menyimpan...' : 'Simpan Password'}</button>
+
+              {/* 3. Jurusan / Prodi */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Program Studi
+                </label>
+                <input
+                  type="text"
+                  value={profil.jurusan}
+                  disabled
+                  className="w-full border border-gray-200 p-3 rounded-xl bg-gray-50 text-gray-600"
+                />
               </div>
-              {successMessage && <p className="text-green-600 mt-3">{successMessage}</p>}
-              {error && <p className="text-red-600 mt-3">{error}</p>}
+
+              {/* 4. Fakultas */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fakultas
+                </label>
+                <input
+                  type="text"
+                  value={profil.fakultas}
+                  disabled
+                  className="w-full border border-gray-200 p-3 rounded-xl bg-gray-50 text-gray-600"
+                />
+              </div>
+
+              {/* 5. KHUSUS MAHASISWA: Tampilkan Angkatan */}
+              {role === "mahasiswa" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Angkatan
+                  </label>
+                  <input
+                    type="text"
+                    value={profil.angkatan}
+                    disabled
+                    className="w-full border border-gray-200 p-3 rounded-xl bg-gray-50 text-gray-600"
+                  />
+                </div>
+              )}
             </form>
-          )}
 
+            {/* Tombol Aksi */}
+            <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowPwdForm((s) => !s);
+                  setSuccessMessage(null);
+                  setError(null);
+                }}
+                className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition font-medium"
+              >
+                Ubah Password
+              </button>
+              <button className="px-5 py-2.5 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl hover:from-[#5c1529] hover:to-[#7a1d38] transition-all shadow-md font-medium">
+                Request Edit Data
+              </button>
+            </div>
+
+            {/* Form Ubah Password (tampil ketika diaktifkan) */}
+            {showPwdForm && (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setError(null);
+                  setSuccessMessage(null);
+                  if (newPassword.length < 6) {
+                    setError("Password harus minimal 6 karakter.");
+                    return;
+                  }
+                  if (newPassword !== confirmPassword) {
+                    setError("Konfirmasi password tidak cocok.");
+                    return;
+                  }
+                  setUpdatingPassword(true);
+                  try {
+                    const supabase = createClient();
+                    const { data, error: updErr } =
+                      await supabase.auth.updateUser({ password: newPassword });
+                    if (updErr) throw updErr;
+                    setSuccessMessage("Password berhasil diubah.");
+                    setNewPassword("");
+                    setConfirmPassword("");
+                    setShowPwdForm(false);
+                  } catch (err: any) {
+                    setError(err?.message || "Gagal mengubah password.");
+                  } finally {
+                    setUpdatingPassword(false);
+                  }
+                }}
+                className="mt-6 p-6 border border-gray-100 rounded-2xl bg-gray-50"
+              >
+                <h4 className="font-semibold text-gray-800 mb-4">
+                  🔐 Ubah Password
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Password Baru
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Konfirmasi Password
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-3 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPwdForm(false);
+                      setError(null);
+                      setSuccessMessage(null);
+                    }}
+                    className="px-4 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl transition font-medium"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updatingPassword}
+                    className="px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-medium shadow-md"
+                  >
+                    {updatingPassword ? "Menyimpan..." : "Simpan Password"}
+                  </button>
+                </div>
+                {successMessage && (
+                  <p className="text-green-600 mt-3 bg-green-50 p-3 rounded-lg">
+                    {successMessage}
+                  </p>
+                )}
+                {error && (
+                  <p className="text-red-600 mt-3 bg-red-50 p-3 rounded-lg">
+                    {error}
+                  </p>
+                )}
+              </form>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

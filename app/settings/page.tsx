@@ -283,13 +283,16 @@ export default function SettingsPage() {
   // Add user modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [newUsername, setNewUsername] = useState("");
   const [newRole, setNewRole] = useState("student");
   const [newNim, setNewNim] = useState("");
+  const [newAngkatan, setNewAngkatan] = useState("");
   const [newProgramStudi, setNewProgramStudi] = useState("");
   const [newFakultas, setNewFakultas] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   // Edit user state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editId, setEditId] = useState<any>(null);
@@ -310,49 +313,69 @@ export default function SettingsPage() {
   const handleCreateUser = async () => {
     setCreatingUser(true);
     setCreateError(null);
+    setCreateSuccess(null);
+
+    // Validate required fields
+    if (!newEmail.trim()) {
+      setCreateError("Email wajib diisi");
+      setCreatingUser(false);
+      return;
+    }
+    if (!newPassword.trim() || newPassword.length < 6) {
+      setCreateError("Password wajib diisi (minimal 6 karakter)");
+      setCreatingUser(false);
+      return;
+    }
+
     try {
-      const payload: any = {
-        role: newRole,
-      };
-      if (newEmail.trim()) payload.email = newEmail.trim();
-      if (newUsername.trim()) payload.username = newUsername.trim();
-      if (newProgramStudi.trim()) payload.jurusan = newProgramStudi.trim();
-      if (newFakultas.trim()) payload.fakultas = newFakultas.trim();
-      if (newNim.trim()) {
-        const idKey =
-          newRole === "dosen" || newRole === "kaprodi" ? "nidn" : "nomor_induk";
-        payload[idKey] = newNim.trim();
+      const response = await fetch("/api/admin/create-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: newEmail.trim(),
+          password: newPassword,
+          username: newUsername.trim() || undefined,
+          role: newRole,
+          nim: newRole === "student" ? newNim.trim() || undefined : undefined,
+          nidn: newRole !== "student" ? newNim.trim() || undefined : undefined,
+          jurusan: newProgramStudi.trim() || undefined,
+          fakultas: newFakultas.trim() || undefined,
+          angkatan: newAngkatan.trim() || undefined,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setCreateError(result.error || "Gagal membuat user");
+        return;
       }
 
-      const table = profilesTableName ?? "profiles";
-      const res = await supabase.from(table).insert([payload]).select("*");
-      if (res.error) {
-        const err = res.error as any;
-        console.error(`Gagal membuat user di '${table}':`, {
-          status: (res as any).status,
-          statusText: (res as any).statusText,
-          errorMessage: err?.message,
-          error: err,
-          data: res.data,
-        });
-        const msg =
-          err?.message ?? JSON.stringify(err) ?? "Gagal membuat user.";
-        setCreateError(msg);
-      } else {
+      // Success
+      setCreateSuccess(`User ${result.user?.email} berhasil dibuat!`);
+      setNewEmail("");
+      setNewPassword("");
+      setNewUsername("");
+      setNewRole("student");
+      setNewNim("");
+      setNewAngkatan("");
+      setNewProgramStudi("");
+      setNewFakultas("");
+      await fetchUsers();
+
+      // Close modal after 2 seconds
+      setTimeout(() => {
         setShowAddModal(false);
-        setNewEmail("");
-        setNewUsername("");
-        setNewRole("student");
-        setNewNim("");
-        setNewProgramStudi("");
-        setNewFakultas("");
-        setCreateError(null);
-        await fetchUsers();
-      }
+        setCreateSuccess(null);
+      }, 2000);
     } catch (err: any) {
       console.error("Unexpected error saat membuat user:", err);
-      const msg = err?.message ?? JSON.stringify(err);
-      setCreateError(msg);
+      setCreateError(
+        err?.message ??
+          "Terjadi kesalahan. Pastikan SUPABASE_SERVICE_ROLE_KEY sudah diset."
+      );
     } finally {
       setCreatingUser(false);
     }
@@ -378,19 +401,32 @@ export default function SettingsPage() {
     if (!editId) return;
     setEditingUser(true);
     try {
+      // Build payload matching the profiles table schema
       const payload: any = {
-        role: editRole,
+        role: editRole, // must be 'kaprodi', 'dosen', or 'student'
+        updated_at: new Date().toISOString(),
       };
-      if (editEmail.trim()) payload.email = editEmail.trim();
+
+      // username is in profiles table
       if (editUsername.trim()) payload.username = editUsername.trim();
+
+      // jurusan and fakultas are in profiles table
       if (editProgramStudi.trim()) payload.jurusan = editProgramStudi.trim();
       if (editFakultas.trim()) payload.fakultas = editFakultas.trim();
+
+      // Use correct field names from schema: nim (bigint) for students, nidn (text) for dosen/kaprodi
       if (editNim.trim()) {
-        const idKey =
-          editRole === "dosen" || editRole === "kaprodi"
-            ? "nidn"
-            : "nomor_induk";
-        payload[idKey] = editNim.trim();
+        if (editRole === "dosen" || editRole === "kaprodi") {
+          payload.nidn = editNim.trim();
+          payload.nim = null; // clear nim if switching to dosen/kaprodi
+        } else {
+          // nim is bigint, so parse it
+          const nimValue = parseInt(editNim.trim());
+          if (!isNaN(nimValue)) {
+            payload.nim = nimValue;
+          }
+          payload.nidn = null; // clear nidn if switching to student
+        }
       }
 
       const table = profilesTableName ?? "profiles";
@@ -441,52 +477,30 @@ export default function SettingsPage() {
     }
   };
 
-  // Filter users berdasarkan role
+  // Filter users berdasarkan role (sesuai CHECK constraint: 'kaprodi', 'dosen', 'student')
   const getStudents = () =>
-    users.filter(
-      (u) =>
-        (u.role ?? u.user_role)?.toLowerCase() === "student" ||
-        (u.role ?? u.user_role)?.toLowerCase() === "mahasiswa"
-    );
+    users.filter((u) => (u.role ?? u.user_role)?.toLowerCase() === "student");
   const getDosen = () =>
-    users.filter(
-      (u) =>
-        (u.role ?? u.user_role)?.toLowerCase() === "dosen" ||
-        (u.role ?? u.user_role)?.toLowerCase() === "lecturer"
-    );
+    users.filter((u) => (u.role ?? u.user_role)?.toLowerCase() === "dosen");
   const getKaprodi = () =>
-    users.filter(
-      (u) =>
-        (u.role ?? u.user_role)?.toLowerCase() === "kaprodi" ||
-        (u.role ?? u.user_role)?.toLowerCase() === "admin"
-    );
+    users.filter((u) => (u.role ?? u.user_role)?.toLowerCase() === "kaprodi");
 
   // Role badge styling
   const getRoleBadge = (role: string) => {
     const r = role?.toLowerCase() || "";
     if (r === "student" || r === "mahasiswa") {
-      return "bg-blue-100 text-blue-800";
+      return "bg-[#fdf2f4] text-[#7a1d38]";
     } else if (r === "dosen" || r === "lecturer") {
-      return "bg-green-100 text-green-800";
+      return "bg-[#fce7ea] text-[#5c1529]";
     } else if (r === "kaprodi" || r === "admin") {
-      return "bg-purple-100 text-purple-800";
+      return "bg-[#7a1d38] text-white";
     }
     return "bg-gray-100 text-gray-800";
   };
 
   // Semester color styling
   const getSemesterColor = (semester: number) => {
-    const colors = [
-      "from-blue-500 to-blue-600",
-      "from-green-500 to-green-600",
-      "from-purple-500 to-purple-600",
-      "from-orange-500 to-orange-600",
-      "from-pink-500 to-pink-600",
-      "from-teal-500 to-teal-600",
-      "from-indigo-500 to-indigo-600",
-      "from-red-500 to-red-600",
-    ];
-    return colors[(semester - 1) % colors.length];
+    return "from-[#7a1d38] to-[#5c1529]";
   };
 
   // Resolve email from various possible column names (prefer profile fields)
@@ -517,45 +531,24 @@ export default function SettingsPage() {
 
   const resolveNim = (u: any) => {
     if (!u) return "-";
-    // prefer NIM for students, but if user role is dosen/kaprodi prefer NIDN
-    const role = (u.role ?? u.user_role ?? "").toString().toLowerCase();
-    const nidnCandidates = ["nidn", "nidn_number", "nomor_dosen", "nidn_id"];
-    const nimCandidates = ["nomor_induk", "nim", "nim_user", "student_id"];
-    if (
-      role === "dosen" ||
-      role === "kaprodi" ||
-      role === "lecturer" ||
-      role === "admin"
-    ) {
-      for (const k of nidnCandidates) if (u[k]) return u[k];
-      for (const k of nimCandidates) if (u[k]) return u[k];
+    // Schema: nim (bigint) for students, nidn (text) for dosen/kaprodi
+    const role = (u.role ?? "").toString().toLowerCase();
+    if (role === "dosen" || role === "kaprodi") {
+      return u.nidn || "-";
     }
-    for (const k of nimCandidates) if (u[k]) return u[k];
-    for (const k of nidnCandidates) if (u[k]) return u[k];
-    return "-";
+    // For students, nim is bigint
+    return u.nim ? u.nim.toString() : "-";
   };
 
   // Resolve identifier (nim for students, nidn for dosen/kaprodi) from a user object.
   const resolveIdForRole = (u: any, roleOverride?: string) => {
     if (!u) return "";
-    const role = (roleOverride ?? u.role ?? u.user_role ?? "")
-      .toString()
-      .toLowerCase();
-    const nidnCandidates = ["nidn", "nidn_number", "nomor_dosen", "nidn_id"];
-    const nimCandidates = ["nomor_induk", "nim", "nim_user", "student_id"];
-    if (
-      role === "dosen" ||
-      role === "kaprodi" ||
-      role === "lecturer" ||
-      role === "admin"
-    ) {
-      for (const k of nidnCandidates) if (u[k]) return u[k];
-      for (const k of nimCandidates) if (u[k]) return u[k];
-    } else {
-      for (const k of nimCandidates) if (u[k]) return u[k];
-      for (const k of nidnCandidates) if (u[k]) return u[k];
+    const role = (roleOverride ?? u.role ?? "").toString().toLowerCase();
+    if (role === "dosen" || role === "kaprodi") {
+      return u.nidn || "";
     }
-    return "";
+    // nim is bigint in schema
+    return u.nim ? u.nim.toString() : "";
   };
 
   const resolveFakultas = (u: any) => {
@@ -589,7 +582,7 @@ export default function SettingsPage() {
     colorClass: string;
     onAdd?: () => void;
   }) => (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6 hover:shadow-md transition-all">
       <div
         className={`px-6 py-4 ${colorClass} flex items-center justify-between gap-3`}
       >
@@ -606,7 +599,7 @@ export default function SettingsPage() {
           <div>
             <button
               onClick={onAdd}
-              className="px-3 py-1 bg-white/90 text-slate-800 rounded-md text-sm font-medium hover:bg-white"
+              className="px-3 py-1.5 bg-white text-[#7a1d38] rounded-lg text-sm font-medium hover:bg-[#fdf2f4] transition-colors"
             >
               + Tambah
             </button>
@@ -617,23 +610,23 @@ export default function SettingsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50 border-b">
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">
+              <tr className="bg-[#fdf2f4]">
+                <th className="px-6 py-4 text-sm font-semibold text-[#7a1d38]">
                   Nama
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">
+                <th className="px-6 py-4 text-sm font-semibold text-[#7a1d38]">
                   NIM / NIDN
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">
+                <th className="px-6 py-4 text-sm font-semibold text-[#7a1d38]">
                   Fakultas
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">
+                <th className="px-6 py-4 text-sm font-semibold text-[#7a1d38]">
                   Program Studi
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">
+                <th className="px-6 py-4 text-sm font-semibold text-[#7a1d38]">
                   Role
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">
+                <th className="px-6 py-4 text-sm font-semibold text-[#7a1d38] text-center">
                   Aksi
                 </th>
               </tr>
@@ -642,29 +635,27 @@ export default function SettingsPage() {
               {users.map((u, idx) => (
                 <tr
                   key={u.id ?? idx}
-                  className="border-b hover:bg-slate-50 transition-colors"
+                  className="border-b border-gray-100 hover:bg-[#fdf2f4]/50 transition-colors"
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center font-bold text-slate-600">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#7a1d38] to-[#9e2a4a] flex items-center justify-center font-bold text-white">
                         {(
                           (u.full_name ?? u.name ?? u.username ?? "?") as string
                         )
                           .charAt(0)
                           .toUpperCase()}
                       </div>
-                      <span className="font-medium text-slate-900">
+                      <span className="font-medium text-gray-900">
                         {u.full_name ?? u.name ?? u.username ?? "-"}
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-slate-600">{resolveNim(u)}</td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-gray-600">{resolveNim(u)}</td>
+                  <td className="px-6 py-4 text-gray-600">
                     {resolveFakultas(u)}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
-                    {resolveProdi(u)}
-                  </td>
+                  <td className="px-6 py-4 text-gray-600">{resolveProdi(u)}</td>
                   <td className="px-6 py-4">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${getRoleBadge(
@@ -679,7 +670,7 @@ export default function SettingsPage() {
                     <div className="flex justify-center gap-2">
                       <button
                         onClick={() => openEditForUser(u)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="p-2 text-[#7a1d38] hover:bg-[#fdf2f4] rounded-lg transition-colors"
                         title="Edit"
                       >
                         <svg
@@ -725,7 +716,7 @@ export default function SettingsPage() {
           </table>
         </div>
       ) : (
-        <div className="p-8 text-center text-slate-500">
+        <div className="p-8 text-center text-gray-500">
           <span className="text-4xl mb-2 block">📭</span>
           <p>Tidak ada pengguna dalam kategori ini.</p>
         </div>
@@ -734,25 +725,30 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+    <div className="min-h-screen bg-gray-50 p-8">
       {/* Header */}
       <header className="mb-8">
-        <h1 className="text-4xl font-bold text-slate-900 mb-2">
-          ⚙️ Pengaturan
-        </h1>
-        <p className="text-slate-600 text-lg">
-          Kelola pengguna dan mata kuliah sistem
-        </p>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-12 h-12 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl flex items-center justify-center">
+            <span className="text-2xl">⚙️</span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Pengaturan</h1>
+            <p className="text-gray-600">
+              Kelola pengguna dan mata kuliah sistem
+            </p>
+          </div>
+        </div>
       </header>
 
       {/* Tab Navigation */}
-      <div className="bg-white rounded-2xl shadow-lg p-2 mb-8 inline-flex gap-2">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-1.5 mb-8 inline-flex gap-1">
         <button
           onClick={() => setActiveTab("manageUser")}
           className={`px-6 py-3 rounded-xl font-medium transition-all ${
             activeTab === "manageUser"
-              ? "bg-blue-600 text-white shadow-md"
-              : "text-slate-600 hover:bg-slate-100"
+              ? "bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white shadow-md"
+              : "text-gray-600 hover:bg-[#fdf2f4] hover:text-[#7a1d38]"
           }`}
         >
           👥 Manage User
@@ -761,8 +757,8 @@ export default function SettingsPage() {
           onClick={() => setActiveTab("matakuliah")}
           className={`px-6 py-3 rounded-xl font-medium transition-all ${
             activeTab === "matakuliah"
-              ? "bg-blue-600 text-white shadow-md"
-              : "text-slate-600 hover:bg-slate-100"
+              ? "bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white shadow-md"
+              : "text-gray-600 hover:bg-[#fdf2f4] hover:text-[#7a1d38]"
           }`}
         >
           📚 Mata Kuliah
@@ -773,9 +769,9 @@ export default function SettingsPage() {
       {activeTab === "manageUser" && (
         <div>
           {loadingUsers ? (
-            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-              <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p className="text-slate-600">Memuat daftar pengguna...</p>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+              <div className="animate-spin w-12 h-12 border-4 border-[#7a1d38] border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-gray-600">Memuat daftar pengguna...</p>
             </div>
           ) : usersError ? (
             <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700">
@@ -786,47 +782,41 @@ export default function SettingsPage() {
             <div>
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
+                <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-slate-500 text-sm uppercase tracking-wide">
-                        Mahasiswa
-                      </p>
-                      <p className="text-3xl font-bold text-slate-900 mt-1">
+                      <p className="text-gray-500 text-sm">Mahasiswa</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-1">
                         {getStudents().length}
                       </p>
                     </div>
-                    <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-3xl">
+                    <div className="w-14 h-14 bg-[#fdf2f4] rounded-2xl flex items-center justify-center text-3xl">
                       🎓
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
+                <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-slate-500 text-sm uppercase tracking-wide">
-                        Dosen
-                      </p>
-                      <p className="text-3xl font-bold text-slate-900 mt-1">
+                      <p className="text-gray-500 text-sm">Dosen</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-1">
                         {getDosen().length}
                       </p>
                     </div>
-                    <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center text-3xl">
+                    <div className="w-14 h-14 bg-[#fdf2f4] rounded-2xl flex items-center justify-center text-3xl">
                       👨‍🏫
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500">
+                <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-slate-500 text-sm uppercase tracking-wide">
-                        Kaprodi
-                      </p>
-                      <p className="text-3xl font-bold text-slate-900 mt-1">
+                      <p className="text-gray-500 text-sm">Kaprodi</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-1">
                         {getKaprodi().length}
                       </p>
                     </div>
-                    <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center text-3xl">
+                    <div className="w-14 h-14 bg-[#fdf2f4] rounded-2xl flex items-center justify-center text-3xl">
                       👔
                     </div>
                   </div>
@@ -839,21 +829,21 @@ export default function SettingsPage() {
                 icon="🎓"
                 users={getStudents()}
                 onAdd={() => openAddForRole("student")}
-                colorClass="bg-gradient-to-r from-blue-600 to-blue-700"
+                colorClass="bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a]"
               />
               <UserTable
                 title="Dosen"
                 icon="👨‍🏫"
                 users={getDosen()}
                 onAdd={() => openAddForRole("dosen")}
-                colorClass="bg-gradient-to-r from-green-600 to-green-700"
+                colorClass="bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a]"
               />
               <UserTable
                 title="Kaprodi / Admin"
                 icon="👔"
                 users={getKaprodi()}
                 onAdd={() => openAddForRole("kaprodi")}
-                colorClass="bg-gradient-to-r from-purple-600 to-purple-700"
+                colorClass="bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a]"
               />
             </div>
           )}
@@ -863,67 +853,128 @@ export default function SettingsPage() {
       {/* Add User Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-6">
-            <h3 className="text-lg font-bold mb-4">Tambah Pengguna</h3>
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Tambah Pengguna Baru
+            </h3>
             <div className="grid grid-cols-1 gap-3">
               {createError && (
-                <div className="text-sm text-red-600 p-2 rounded bg-red-50">
-                  {createError}
+                <div className="text-sm text-red-600 p-3 rounded-lg bg-red-50 border border-red-200">
+                  ⚠️ {createError}
                 </div>
               )}
-              <input
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full px-4 py-3 rounded-lg border"
-              />
+              {createSuccess && (
+                <div className="text-sm text-green-600 p-3 rounded-lg bg-green-50 border border-green-200">
+                  ✅ {createSuccess}
+                </div>
+              )}
+
+              {/* Required Fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="contoh@email.com"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimal 6 karakter"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Role <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
+                >
+                  <option value="student">Mahasiswa</option>
+                  <option value="dosen">Dosen</option>
+                  <option value="kaprodi">Kaprodi</option>
+                </select>
+              </div>
+
+              {/* Optional Fields */}
+              <div className="border-t border-gray-200 pt-3 mt-2">
+                <p className="text-sm text-gray-500 mb-3">
+                  Data Tambahan (Opsional)
+                </p>
+              </div>
+
               <input
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
-                placeholder="Username (opsional)"
-                className="w-full px-4 py-3 rounded-lg border"
+                placeholder="Username"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
               <input
                 value={newNim}
                 onChange={(e) => setNewNim(e.target.value)}
-                placeholder="Nomor Induk / NIM / NIDN (opsional)"
-                className="w-full px-4 py-3 rounded-lg border"
+                placeholder={newRole === "student" ? "NIM" : "NIDN"}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
+              {newRole === "student" && (
+                <input
+                  value={newAngkatan}
+                  onChange={(e) => setNewAngkatan(e.target.value)}
+                  placeholder="Angkatan (contoh: 2023)"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
+                />
+              )}
               <input
                 value={newProgramStudi}
                 onChange={(e) => setNewProgramStudi(e.target.value)}
-                placeholder="Program Studi (jurusan)"
-                className="w-full px-4 py-3 rounded-lg border"
+                placeholder="Program Studi / Jurusan"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
               <input
                 value={newFakultas}
                 onChange={(e) => setNewFakultas(e.target.value)}
                 placeholder="Fakultas"
-                className="w-full px-4 py-3 rounded-lg border"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border"
-              >
-                <option value="student">Mahasiswa</option>
-                <option value="dosen">Dosen</option>
-                <option value="kaprodi">Kaprodi / Admin</option>
-              </select>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button
-                onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 rounded-lg border"
+                onClick={() => {
+                  setShowAddModal(false);
+                  setCreateError(null);
+                  setCreateSuccess(null);
+                }}
+                className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={handleCreateUser}
                 disabled={creatingUser}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60"
+                className="px-4 py-2 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl hover:from-[#5c1529] hover:to-[#7a1d38] disabled:opacity-60 transition-all flex items-center gap-2"
               >
-                {creatingUser ? "Membuat..." : "Buat Pengguna"}
+                {creatingUser ? (
+                  <>
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    Membuat...
+                  </>
+                ) : (
+                  "Buat Pengguna"
+                )}
               </button>
             </div>
           </div>
@@ -933,60 +984,65 @@ export default function SettingsPage() {
       {/* Edit User Modal */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-6">
-            <h3 className="text-lg font-bold mb-4">Edit Pengguna</h3>
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 mx-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Edit Pengguna
+            </h3>
             <div className="grid grid-cols-1 gap-3">
               <input
                 value={editEmail}
                 onChange={(e) => setEditEmail(e.target.value)}
                 placeholder="Email"
-                className="w-full px-4 py-3 rounded-lg border"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
               <input
                 value={editUsername}
                 onChange={(e) => setEditUsername(e.target.value)}
                 placeholder="Username (opsional)"
-                className="w-full px-4 py-3 rounded-lg border"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
               <input
                 value={editNim}
                 onChange={(e) => setEditNim(e.target.value)}
                 placeholder="Nomor Induk / NIM / NIDN (opsional)"
-                className="w-full px-4 py-3 rounded-lg border"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
               <input
                 value={editProgramStudi}
                 onChange={(e) => setEditProgramStudi(e.target.value)}
                 placeholder="Program Studi (jurusan)"
-                className="w-full px-4 py-3 rounded-lg border"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
               <input
                 value={editFakultas}
                 onChange={(e) => setEditFakultas(e.target.value)}
                 placeholder="Fakultas"
-                className="w-full px-4 py-3 rounded-lg border"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
               <select
                 value={editRole}
                 onChange={(e) => setEditRole(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               >
-                <option value="student">Mahasiswa</option>
+                <option value="student">Mahasiswa (student)</option>
                 <option value="dosen">Dosen</option>
-                <option value="kaprodi">Kaprodi / Admin</option>
+                <option value="kaprodi">Kaprodi</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Role harus sesuai constraint: student, dosen, atau kaprodi
+              </p>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 rounded-lg border"
+                className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={handleEditUser}
                 disabled={editingUser}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
+                className="px-4 py-2 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl hover:from-[#5c1529] hover:to-[#7a1d38] disabled:opacity-60 transition-all"
               >
                 {editingUser ? "Menyimpan..." : "Simpan Perubahan"}
               </button>
@@ -1006,10 +1062,10 @@ export default function SettingsPage() {
                 placeholder="Cari mata kuliah..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
               <svg
-                className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400"
+                className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1024,7 +1080,7 @@ export default function SettingsPage() {
             </div>
             <button
               onClick={openAddCourse}
-              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+              className="px-6 py-3 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl font-medium hover:from-[#5c1529] hover:to-[#7a1d38] transition-all shadow-md flex items-center gap-2"
             >
               <svg
                 className="h-5 w-5"
@@ -1045,9 +1101,9 @@ export default function SettingsPage() {
 
           {/* Loading State */}
           {loadingCourses && (
-            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-              <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p className="text-slate-600">Memuat data mata kuliah...</p>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+              <div className="animate-spin w-12 h-12 border-4 border-[#7a1d38] border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-gray-600">Memuat data mata kuliah...</p>
             </div>
           )}
 
@@ -1064,29 +1120,29 @@ export default function SettingsPage() {
             <div className="space-y-8">
               {/* Summary Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-xl shadow-lg p-4 border-l-4 border-blue-500">
-                  <p className="text-slate-500 text-sm">Total Mata Kuliah</p>
-                  <p className="text-2xl font-bold text-slate-900">
+                <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
+                  <p className="text-gray-500 text-sm">Total Mata Kuliah</p>
+                  <p className="text-2xl font-bold text-gray-900">
                     {courses.length}
                   </p>
                 </div>
-                <div className="bg-white rounded-xl shadow-lg p-4 border-l-4 border-green-500">
-                  <p className="text-slate-500 text-sm">Total SKS</p>
-                  <p className="text-2xl font-bold text-slate-900">
+                <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
+                  <p className="text-gray-500 text-sm">Total SKS</p>
+                  <p className="text-2xl font-bold text-gray-900">
                     {courses.reduce((sum, c) => sum + c.sks, 0)}
                   </p>
                 </div>
-                <div className="bg-white rounded-xl shadow-lg p-4 border-l-4 border-purple-500">
-                  <p className="text-slate-500 text-sm">Jumlah Semester</p>
-                  <p className="text-2xl font-bold text-slate-900">
+                <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
+                  <p className="text-gray-500 text-sm">Jumlah Semester</p>
+                  <p className="text-2xl font-bold text-gray-900">
                     {sortedSemesters.length}
                   </p>
                 </div>
-                <div className="bg-white rounded-xl shadow-lg p-4 border-l-4 border-orange-500">
-                  <p className="text-slate-500 text-sm">
+                <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
+                  <p className="text-gray-500 text-sm">
                     Rata-rata SKS/Semester
                   </p>
-                  <p className="text-2xl font-bold text-slate-900">
+                  <p className="text-2xl font-bold text-gray-900">
                     {sortedSemesters.length > 0
                       ? Math.round(
                           courses.reduce((sum, c) => sum + c.sks, 0) /
@@ -1112,7 +1168,7 @@ export default function SettingsPage() {
                 return (
                   <div
                     key={semester}
-                    className="bg-white rounded-2xl shadow-lg overflow-hidden"
+                    className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all"
                   >
                     {/* Semester Header */}
                     <div
@@ -1146,16 +1202,16 @@ export default function SettingsPage() {
                         {semesterCourses.map((course) => (
                           <div
                             key={course.id ?? course.kode_mk}
-                            className="bg-slate-50 rounded-xl p-4 hover:bg-slate-100 transition-colors border border-slate-200"
+                            className="bg-[#fdf2f4] rounded-xl p-4 hover:bg-[#fce7ea] transition-colors border border-[#7a1d38]/10"
                           >
                             <div className="flex items-start justify-between mb-3">
-                              <span className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">
+                              <span className="px-3 py-1 bg-[#7a1d38]/10 text-[#7a1d38] rounded-lg text-sm font-medium">
                                 {course.kode_mk}
                               </span>
                               <div className="flex gap-1">
                                 <button
                                   onClick={() => openEditCourse(course)}
-                                  className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                                  className="p-1.5 text-[#7a1d38] hover:bg-[#7a1d38]/10 rounded-lg transition-colors"
                                   title="Edit"
                                 >
                                   <svg
@@ -1193,10 +1249,10 @@ export default function SettingsPage() {
                                 </button>
                               </div>
                             </div>
-                            <h4 className="font-semibold text-slate-900 mb-2">
+                            <h4 className="font-semibold text-gray-900 mb-2">
                               {course.nama_mk}
                             </h4>
-                            <div className="flex flex-col gap-1.5 text-sm text-slate-600">
+                            <div className="flex flex-col gap-1.5 text-sm text-gray-600">
                               <span className="flex items-center gap-1">
                                 <span>📘</span> {course.sks} SKS
                               </span>
@@ -1205,7 +1261,7 @@ export default function SettingsPage() {
                                 {course.profiles?.username ? (
                                   course.profiles.username
                                 ) : (
-                                  <span className="italic text-slate-400">
+                                  <span className="italic text-gray-400">
                                     Belum ada pengampu
                                   </span>
                                 )}
@@ -1221,11 +1277,11 @@ export default function SettingsPage() {
 
               {/* Empty State */}
               {!hasFilteredResults && (
-                <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
                   <span className="text-6xl mb-4 block">
                     {searchQuery ? "🔍" : "📚"}
                   </span>
-                  <p className="text-slate-600 text-lg">
+                  <p className="text-gray-600 text-lg">
                     {searchQuery
                       ? "Tidak ada mata kuliah yang ditemukan."
                       : "Belum ada mata kuliah. Klik 'Tambah Mata Kuliah' untuk menambahkan."}
@@ -1240,8 +1296,8 @@ export default function SettingsPage() {
       {/* Add/Edit Mata Kuliah Modal */}
       {showCourseModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-6 mx-4">
-            <h3 className="text-xl font-bold text-slate-900 mb-6">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">
               {editingCourse ? "Edit Mata Kuliah" : "Tambah Mata Kuliah Baru"}
             </h3>
 
@@ -1253,7 +1309,7 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Kode Mata Kuliah <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1263,12 +1319,12 @@ export default function SettingsPage() {
                     setCourseForm({ ...courseForm, kode_mk: e.target.value })
                   }
                   placeholder="Contoh: IF101"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nama Mata Kuliah <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1278,13 +1334,13 @@ export default function SettingsPage() {
                     setCourseForm({ ...courseForm, nama_mk: e.target.value })
                   }
                   placeholder="Contoh: Algoritma dan Pemrograman"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     SKS <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -1295,7 +1351,7 @@ export default function SettingsPage() {
                         sks: parseInt(e.target.value),
                       })
                     }
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   >
                     {[1, 2, 3, 4, 5, 6].map((n) => (
                       <option key={n} value={n}>
@@ -1306,7 +1362,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Semester <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -1317,7 +1373,7 @@ export default function SettingsPage() {
                         semester: parseInt(e.target.value),
                       })
                     }
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                       <option key={n} value={n}>
@@ -1329,14 +1385,14 @@ export default function SettingsPage() {
               </div>
 
               {/* Jadwal Section */}
-              <div className="border-t pt-4 mt-4">
-                <h4 className="text-sm font-semibold text-slate-800 mb-3">
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <h4 className="text-sm font-semibold text-[#7a1d38] mb-3">
                   📅 Jadwal Perkuliahan
                 </h4>
 
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Hari
                     </label>
                     <select
@@ -1347,7 +1403,7 @@ export default function SettingsPage() {
                           hari: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                     >
                       {HARI_OPTIONS.map((h) => (
                         <option key={h} value={h}>
@@ -1358,7 +1414,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Ruangan
                     </label>
                     <input
@@ -1371,14 +1427,14 @@ export default function SettingsPage() {
                         })
                       }
                       placeholder="Contoh: Lab 1, R.301"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Jam Mulai
                     </label>
                     <input
@@ -1390,12 +1446,12 @@ export default function SettingsPage() {
                           jam_mulai: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Jam Selesai
                     </label>
                     <input
@@ -1407,14 +1463,14 @@ export default function SettingsPage() {
                           jam_selesai: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Dosen Pengampu
                 </label>
                 <select
@@ -1425,7 +1481,7 @@ export default function SettingsPage() {
                       dosen_id: e.target.value || null,
                     })
                   }
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                 >
                   <option value="">-- Belum Ditentukan --</option>
                   {dosenList.map((dosen) => (
@@ -1436,7 +1492,7 @@ export default function SettingsPage() {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   Pilih dosen yang akan mengampu mata kuliah ini
                 </p>
               </div>
@@ -1448,14 +1504,14 @@ export default function SettingsPage() {
                   setShowCourseModal(false);
                   setEditingCourse(null);
                 }}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-colors"
+                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={handleSaveCourse}
                 disabled={savingCourse}
-                className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:opacity-60 transition-colors flex items-center gap-2"
+                className="px-5 py-2.5 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl font-medium hover:from-[#5c1529] hover:to-[#7a1d38] disabled:opacity-60 transition-all flex items-center gap-2 shadow-md"
               >
                 {savingCourse ? (
                   <>

@@ -484,10 +484,10 @@ export default function KHSPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-600">Memuat data...</p>
+          <div className="animate-spin w-12 h-12 border-4 border-[#7a1d38] border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat data...</p>
         </div>
       </div>
     );
@@ -501,51 +501,58 @@ export default function KHSPage() {
     normalizedRole === "lecturer"
   ) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
         {/* Header */}
         <header className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">
-            📝 Input Nilai Mahasiswa
-          </h1>
-          <p className="text-slate-600 text-lg">
-            Kelola nilai mahasiswa di kelas yang Anda ampu
-          </p>
+          <div className="flex items-center gap-4 mb-2">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl flex items-center justify-center shadow-lg">
+              <span className="text-white text-xl">📝</span>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Input Nilai Mahasiswa
+              </h1>
+              <p className="text-gray-500">
+                Kelola nilai mahasiswa di kelas yang Anda ampu
+              </p>
+            </div>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Daftar Kelas */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
-              <h2 className="text-xl font-bold text-white">Kelas Saya</h2>
-              <p className="text-indigo-100 text-sm">
-                {kelasList.length} kelas
-              </p>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-[#7a1d38] to-[#5c1529] px-6 py-4">
+              <h2 className="text-lg font-bold text-white">Kelas Saya</h2>
+              <p className="text-white/70 text-sm">{kelasList.length} kelas</p>
             </div>
 
             {kelasList.length === 0 ? (
-              <div className="p-8 text-center text-slate-500">
-                <span className="text-4xl block mb-2">📭</span>
+              <div className="p-8 text-center text-gray-500">
+                <div className="w-14 h-14 bg-gray-100 rounded-full mx-auto mb-3 flex items-center justify-center">
+                  <span className="text-2xl">📭</span>
+                </div>
                 <p>Belum ada kelas yang diampu.</p>
               </div>
             ) : (
-              <div className="divide-y max-h-[500px] overflow-y-auto">
+              <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
                 {kelasList.map((kelas) => (
                   <div
                     key={kelas.id}
                     onClick={() => handleSelectKelas(kelas)}
-                    className={`p-4 cursor-pointer hover:bg-slate-50 transition-colors ${
+                    className={`p-4 cursor-pointer hover:bg-[#fdf2f4] transition-colors ${
                       selectedKelas?.id === kelas.id
-                        ? "bg-blue-50 border-l-4 border-blue-500"
+                        ? "bg-[#fdf2f4] border-l-4 border-[#7a1d38]"
                         : ""
                     }`}
                   >
-                    <p className="font-semibold text-slate-900">
+                    <p className="font-semibold text-gray-900">
                       {kelas.matakuliah?.nama_mk}
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-gray-500">
                       {kelas.matakuliah?.kode_mk} • {kelas.matakuliah?.sks} SKS
                     </p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-gray-400 mt-1">
                       {kelas.semester}
                     </p>
                   </div>
@@ -555,15 +562,15 @@ export default function KHSPage() {
           </div>
 
           {/* Daftar Mahasiswa & Input Nilai */}
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
-              <h2 className="text-xl font-bold text-white">
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-[#5c1529] to-[#7a1d38] px-6 py-4">
+              <h2 className="text-lg font-bold text-white">
                 {selectedKelas
                   ? selectedKelas.matakuliah?.nama_mk
                   : "Pilih Kelas"}
               </h2>
               {selectedKelas && (
-                <p className="text-green-100 text-sm">
+                <p className="text-white/70 text-sm">
                   {selectedKelas.hari} {selectedKelas.jam} •{" "}
                   {selectedKelas.ruangan}
                 </p>
@@ -571,54 +578,58 @@ export default function KHSPage() {
             </div>
 
             {!selectedKelas ? (
-              <div className="p-12 text-center text-slate-500">
-                <span className="text-5xl block mb-4">👈</span>
+              <div className="p-12 text-center text-gray-500">
+                <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <span className="text-3xl">👈</span>
+                </div>
                 <p>Pilih kelas dari daftar di sebelah kiri</p>
               </div>
             ) : mahasiswaList.length === 0 ? (
-              <div className="p-12 text-center text-slate-500">
-                <span className="text-5xl block mb-4">👥</span>
+              <div className="p-12 text-center text-gray-500">
+                <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <span className="text-3xl">👥</span>
+                </div>
                 <p>Belum ada mahasiswa terdaftar di kelas ini.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-slate-50 border-b">
+                  <thead className="bg-[#fdf2f4]">
                     <tr>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-[#7a1d38]">
                         No
                       </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-[#7a1d38]">
                         Nama Mahasiswa
                       </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-[#7a1d38]">
                         Jurusan
                       </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-slate-600">
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#7a1d38]">
                         Nilai
                       </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-slate-600">
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#7a1d38]">
                         Angka
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-gray-100">
                     {mahasiswaList.map((mhs, idx) => (
-                      <tr key={mhs.id} className="hover:bg-slate-50">
-                        <td className="px-6 py-4 text-slate-600">{idx + 1}</td>
+                      <tr key={mhs.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-gray-600">{idx + 1}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7a1d38] to-[#9e2a4a] flex items-center justify-center text-white font-bold">
                               {mhs.profiles?.username
                                 ?.charAt(0)
                                 .toUpperCase() || "?"}
                             </div>
-                            <span className="font-medium text-slate-900">
+                            <span className="font-medium text-gray-900">
                               {mhs.profiles?.username || "-"}
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-slate-600">
+                        <td className="px-6 py-4 text-gray-600">
                           {mhs.profiles?.jurusan || "-"}
                         </td>
                         <td className="px-6 py-4">
@@ -636,7 +647,7 @@ export default function KHSPage() {
                                 );
                               }}
                               disabled={savingId === mhs.id}
-                              className={`px-4 py-2 rounded-lg border font-semibold text-center min-w-[100px] ${getGradeColor(
+                              className={`px-4 py-2 rounded-xl border font-semibold text-center min-w-[100px] ${getGradeColor(
                                 mhs.nilai_huruf
                               )} ${savingId === mhs.id ? "opacity-50" : ""}`}
                             >
@@ -650,7 +661,7 @@ export default function KHSPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <span className="font-mono text-lg font-semibold text-slate-700">
+                          <span className="font-mono text-lg font-semibold text-gray-700">
                             {mhs.nilai_angka?.toFixed(2) || "-"}
                           </span>
                         </td>
@@ -663,12 +674,12 @@ export default function KHSPage() {
 
             {/* Summary */}
             {selectedKelas && mahasiswaList.length > 0 && (
-              <div className="p-4 bg-slate-50 border-t">
+              <div className="p-4 bg-gray-50 border-t border-gray-100">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">
+                  <span className="text-gray-600">
                     Total: {mahasiswaList.length} mahasiswa
                   </span>
-                  <span className="text-slate-600">
+                  <span className="text-gray-600">
                     Sudah dinilai:{" "}
                     {mahasiswaList.filter((m) => m.nilai_huruf).length} /{" "}
                     {mahasiswaList.length}
@@ -680,8 +691,8 @@ export default function KHSPage() {
         </div>
 
         {/* Panduan Nilai */}
-        <div className="mt-8 bg-white rounded-2xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">
+        <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">
             📊 Panduan Konversi Nilai
           </h3>
           <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
@@ -706,28 +717,33 @@ export default function KHSPage() {
   const stats = calculateStats();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
       {/* Header */}
       <header className="mb-8">
-        <h1 className="text-4xl font-bold text-slate-900 mb-2">
-          📊 Kartu Hasil Studi
-        </h1>
-        <p className="text-slate-600 text-lg">
-          Lihat riwayat nilai akademik Anda
-        </p>
+        <div className="flex items-center gap-4 mb-2">
+          <div className="w-12 h-12 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-white text-xl">📊</span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Kartu Hasil Studi
+            </h1>
+            <p className="text-gray-500">Lihat riwayat nilai akademik Anda</p>
+          </div>
+        </div>
       </header>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-            <p className="text-blue-100 text-sm">Indeks Prestasi Kumulatif</p>
+        <div className="bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-2xl shadow-lg overflow-hidden">
+          <div className="px-6 py-5">
+            <p className="text-white/70 text-sm">Indeks Prestasi Kumulatif</p>
             <p className="text-4xl font-bold text-white">
               {stats.ipk.toFixed(2)}
             </p>
           </div>
-          <div className="px-6 py-3 bg-blue-50">
-            <p className="text-sm text-blue-700">
+          <div className="px-6 py-3 bg-white/10 backdrop-blur-sm">
+            <p className="text-sm text-white/90">
               {stats.ipk >= 3.5
                 ? "🌟 Sangat Baik"
                 : stats.ipk >= 3.0
@@ -739,34 +755,44 @@ export default function KHSPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
-          <p className="text-slate-500 text-sm uppercase tracking-wide">
-            Total SKS
-          </p>
-          <p className="text-3xl font-bold text-slate-900 mt-1">
-            {stats.totalSks}
-          </p>
-          <p className="text-sm text-slate-500 mt-2">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-[#fdf2f4] rounded-xl flex items-center justify-center">
+              <span className="text-[#7a1d38] text-xl">📚</span>
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Total SKS</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats.totalSks}
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 mt-3">
             SKS yang telah diselesaikan
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500">
-          <p className="text-slate-500 text-sm uppercase tracking-wide">
-            Mata Kuliah
-          </p>
-          <p className="text-3xl font-bold text-slate-900 mt-1">
-            {stats.totalMK}
-          </p>
-          <p className="text-sm text-slate-500 mt-2">Mata kuliah selesai</p>
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-[#fdf2f4] rounded-xl flex items-center justify-center">
+              <span className="text-[#7a1d38] text-xl">📖</span>
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Mata Kuliah</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats.totalMK}
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 mt-3">Mata kuliah selesai</p>
         </div>
       </div>
 
       {/* Grades by Semester */}
       {Object.keys(groupedGrades).length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+        <div className="bg-white rounded-2xl shadow-sm p-12 text-center border border-gray-100">
           <span className="text-6xl block mb-4">📭</span>
-          <p className="text-slate-600 text-lg">Belum ada data nilai.</p>
+          <p className="text-gray-600 text-lg">Belum ada data nilai.</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -777,21 +803,21 @@ export default function KHSPage() {
               return (
                 <div
                   key={semester}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden"
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all"
                 >
                   {/* Semester Header */}
-                  <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
+                  <div className="bg-gradient-to-r from-[#7a1d38] to-[#5c1529] px-6 py-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <h2 className="text-xl font-bold text-white">
                           {semester}
                         </h2>
-                        <p className="text-indigo-100 text-sm">
+                        <p className="text-white/80 text-sm">
                           {semGrades.length} Mata Kuliah
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-indigo-100 text-sm">IPS</p>
+                        <p className="text-white/80 text-sm">IPS</p>
                         <p className="text-2xl font-bold text-white">
                           {semStats.ips.toFixed(2)}
                         </p>
@@ -802,40 +828,43 @@ export default function KHSPage() {
                   {/* Grades Table */}
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-slate-50 border-b">
+                      <thead className="bg-[#fdf2f4]">
                         <tr>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-[#7a1d38]">
                             Kode
                           </th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-[#7a1d38]">
                             Mata Kuliah
                           </th>
-                          <th className="px-6 py-4 text-center text-sm font-semibold text-slate-600">
+                          <th className="px-6 py-4 text-center text-sm font-semibold text-[#7a1d38]">
                             SKS
                           </th>
-                          <th className="px-6 py-4 text-center text-sm font-semibold text-slate-600">
+                          <th className="px-6 py-4 text-center text-sm font-semibold text-[#7a1d38]">
                             Nilai
                           </th>
-                          <th className="px-6 py-4 text-center text-sm font-semibold text-slate-600">
+                          <th className="px-6 py-4 text-center text-sm font-semibold text-[#7a1d38]">
                             Angka
                           </th>
-                          <th className="px-6 py-4 text-center text-sm font-semibold text-slate-600">
+                          <th className="px-6 py-4 text-center text-sm font-semibold text-[#7a1d38]">
                             Mutu
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y">
+                      <tbody className="divide-y divide-gray-100">
                         {semGrades.map((grade) => (
-                          <tr key={grade.id} className="hover:bg-slate-50">
+                          <tr
+                            key={grade.id}
+                            className="hover:bg-[#fdf2f4]/50 transition-colors"
+                          >
                             <td className="px-6 py-4">
-                              <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium">
+                              <span className="px-3 py-1 bg-[#fdf2f4] text-[#7a1d38] rounded-lg text-sm font-medium">
                                 {grade.kelas?.matakuliah?.kode_mk || "-"}
                               </span>
                             </td>
-                            <td className="px-6 py-4 font-medium text-slate-900">
+                            <td className="px-6 py-4 font-medium text-gray-900">
                               {grade.kelas?.matakuliah?.nama_mk || "-"}
                             </td>
-                            <td className="px-6 py-4 text-center text-slate-600">
+                            <td className="px-6 py-4 text-center text-gray-600">
                               {grade.kelas?.matakuliah?.sks || 0}
                             </td>
                             <td className="px-6 py-4 text-center">
@@ -848,13 +877,13 @@ export default function KHSPage() {
                                   {grade.nilai_huruf}
                                 </span>
                               ) : (
-                                <span className="text-slate-400">-</span>
+                                <span className="text-gray-400">-</span>
                               )}
                             </td>
-                            <td className="px-6 py-4 text-center font-mono text-slate-700">
+                            <td className="px-6 py-4 text-center font-mono text-gray-700">
                               {grade.nilai_angka?.toFixed(2) || "-"}
                             </td>
-                            <td className="px-6 py-4 text-center font-semibold text-slate-900">
+                            <td className="px-6 py-4 text-center font-semibold text-gray-900">
                               {grade.nilai_angka && grade.kelas?.matakuliah?.sks
                                 ? (
                                     grade.nilai_angka *
@@ -865,19 +894,19 @@ export default function KHSPage() {
                           </tr>
                         ))}
                       </tbody>
-                      <tfoot className="bg-slate-50 border-t">
+                      <tfoot className="bg-[#fdf2f4] border-t border-[#7a1d38]/20">
                         <tr>
                           <td
                             colSpan={2}
-                            className="px-6 py-4 font-bold text-slate-900"
+                            className="px-6 py-4 font-bold text-[#7a1d38]"
                           >
                             Total
                           </td>
-                          <td className="px-6 py-4 text-center font-bold text-slate-900">
+                          <td className="px-6 py-4 text-center font-bold text-[#7a1d38]">
                             {semStats.totalSks}
                           </td>
                           <td colSpan={2}></td>
-                          <td className="px-6 py-4 text-center font-bold text-slate-900">
+                          <td className="px-6 py-4 text-center font-bold text-[#7a1d38]">
                             {semGrades
                               .filter((g) => g.nilai_angka)
                               .reduce(
