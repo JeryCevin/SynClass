@@ -75,7 +75,7 @@ export default function LoginPage() {
             Selamat Datang
           </h2>
           <p className="text-gray-500 text-center mb-8">
-            Masuk ke akun Anda untuk melanjutkan
+            Masuk ke akun untuk melanjutkan
           </p>
 
           {error && (
