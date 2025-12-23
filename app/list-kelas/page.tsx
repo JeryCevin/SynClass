@@ -175,67 +175,103 @@ export default function ListKelasPage() {
   // ==================== RENDER ====================
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-600">Memuat jadwal kelas...</p>
+          <div className="animate-spin w-12 h-12 border-4 border-[#7a1d38] border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat jadwal kelas...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
       {/* Header */}
       <header className="mb-8">
-        <h1 className="text-4xl font-bold text-slate-900 mb-2">
-          📅 Jadwal Kelas
-        </h1>
-        <p className="text-slate-600 text-lg">
-          {role === "mahasiswa"
-            ? "Kelas yang Anda ikuti semester ini"
-            : "Kelas yang Anda ampu semester ini"}
-        </p>
+        <div className="flex items-center gap-4 mb-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-white text-xl">📅</span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Jadwal Kelas</h1>
+            <p className="text-gray-500">
+              {role === "mahasiswa"
+                ? "Kelas yang Anda ikuti semester ini"
+                : "Kelas yang Anda ampu semester ini"}
+            </p>
+          </div>
+        </div>
       </header>
 
       {/* Summary Stats */}
       {kelasList.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
-            <p className="text-2xl font-bold text-slate-900">
-              {kelasList.length}
-            </p>
-            <p className="text-sm text-slate-500">Total Kelas</p>
+          <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#fdf2f4] rounded-xl flex items-center justify-center">
+                <span className="text-[#7a1d38]">📚</span>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {kelasList.length}
+                </p>
+                <p className="text-xs text-gray-500">Total Kelas</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
-            <p className="text-2xl font-bold text-slate-900">
-              {kelasList.reduce((sum, k) => sum + (k.matakuliah?.sks || 0), 0)}
-            </p>
-            <p className="text-sm text-slate-500">Total SKS</p>
+          <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#fdf2f4] rounded-xl flex items-center justify-center">
+                <span className="text-[#7a1d38]">📖</span>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {kelasList.reduce(
+                    (sum, k) => sum + (k.matakuliah?.sks || 0),
+                    0
+                  )}
+                </p>
+                <p className="text-xs text-gray-500">Total SKS</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500">
-            <p className="text-2xl font-bold text-slate-900">
-              {sortedHari.length}
-            </p>
-            <p className="text-sm text-slate-500">Hari Aktif</p>
+          <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#fdf2f4] rounded-xl flex items-center justify-center">
+                <span className="text-[#7a1d38]">📆</span>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {sortedHari.length}
+                </p>
+                <p className="text-xs text-gray-500">Hari Aktif</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-orange-500">
-            <p className="text-2xl font-bold text-slate-900 capitalize">
-              {role}
-            </p>
-            <p className="text-sm text-slate-500">Role Anda</p>
+          <div className="bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-2xl shadow-md p-5 text-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <span>👤</span>
+              </div>
+              <div>
+                <p className="text-2xl font-bold capitalize">{role}</p>
+                <p className="text-xs text-white/70">Role Anda</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Kelas List by Hari */}
       {kelasList.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-          <span className="text-6xl block mb-4">📭</span>
-          <p className="text-slate-600 text-lg mb-2">
-            Belum ada kelas terdaftar.
+        <div className="bg-white rounded-2xl shadow-sm p-12 text-center border border-gray-100">
+          <div className="w-20 h-20 bg-[#fdf2f4] rounded-full mx-auto mb-4 flex items-center justify-center">
+            <span className="text-4xl">📭</span>
+          </div>
+          <p className="text-gray-700 text-lg font-medium mb-2">
+            Belum ada kelas terdaftar
           </p>
-          <p className="text-slate-400 text-sm">
+          <p className="text-gray-400 text-sm">
             {role === "mahasiswa"
               ? "Pastikan KRS Anda sudah disetujui oleh Kaprodi."
               : "Pastikan mata kuliah sudah ditambahkan dan Anda ditetapkan sebagai pengampu."}
@@ -245,12 +281,12 @@ export default function ListKelasPage() {
         <div className="space-y-8">
           {sortedHari.map((hari) => (
             <div key={hari}>
-              <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-3">
-                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7a1d38] to-[#9e2a4a] flex items-center justify-center text-white text-sm font-bold shadow-md">
                   {hari.substring(0, 2)}
                 </span>
                 {hari}
-                <span className="text-sm font-normal text-slate-400">
+                <span className="text-sm font-normal text-gray-400 ml-1">
                   ({groupedByHari[hari].length} kelas)
                 </span>
               </h2>
@@ -260,45 +296,51 @@ export default function ListKelasPage() {
                   .map((kelas) => (
                     <div
                       key={kelas.id}
-                      className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 hover:-translate-y-1 transition-all duration-200 cursor-pointer group"
+                      className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-[#7a1d38]/30 hover:-translate-y-1 transition-all duration-200 cursor-pointer group"
                       onClick={() => openKelasDetail(kelas)}
                     >
                       <div className="flex justify-between items-start mb-4">
-                        <div className="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-lg text-sm">
+                        <div className="bg-[#fdf2f4] text-[#7a1d38] font-bold px-3 py-1.5 rounded-lg text-sm">
                           {kelas.matakuliah?.kode_mk}
                         </div>
-                        <span className="text-slate-500 text-sm font-medium bg-slate-50 px-2 py-1 rounded">
-                          🕐 {kelas.jam || "-"}
+                        <span className="text-gray-500 text-sm font-medium bg-gray-50 px-3 py-1.5 rounded-lg flex items-center gap-1">
+                          <span className="text-xs">🕐</span> {kelas.jam || "-"}
                         </span>
                       </div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
+                      <h3 className="text-lg font-bold text-gray-900 mb-3 group-hover:text-[#7a1d38] transition-colors">
                         {kelas.matakuliah?.nama_mk}
                       </h3>
-                      <div className="space-y-1 text-sm">
-                        <p className="text-slate-500 flex items-center gap-2">
-                          <span>👤</span>
+                      <div className="space-y-2 text-sm">
+                        <p className="text-gray-500 flex items-center gap-2">
+                          <span className="w-6 h-6 bg-gray-50 rounded-lg flex items-center justify-center text-xs">
+                            👤
+                          </span>
                           {kelas.profiles?.username || "Dosen"}
                         </p>
-                        <p className="text-slate-400 flex items-center gap-2">
-                          <span>📍</span>
+                        <p className="text-gray-400 flex items-center gap-2">
+                          <span className="w-6 h-6 bg-gray-50 rounded-lg flex items-center justify-center text-xs">
+                            📍
+                          </span>
                           {kelas.ruangan || "Ruangan belum ditentukan"}
                         </p>
-                        <p className="text-slate-400 flex items-center gap-2">
-                          <span>📚</span>
+                        <p className="text-gray-400 flex items-center gap-2">
+                          <span className="w-6 h-6 bg-gray-50 rounded-lg flex items-center justify-center text-xs">
+                            📚
+                          </span>
                           {kelas.matakuliah?.sks} SKS • Semester{" "}
                           {kelas.matakuliah?.semester}
                         </p>
                       </div>
-                      <div className="mt-4 pt-4 border-t flex gap-2">
-                        <span className="flex-1 bg-indigo-50 text-indigo-700 py-2 rounded-lg text-sm font-semibold text-center group-hover:bg-indigo-100 transition-colors">
+                      <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
+                        <span className="flex-1 bg-[#fdf2f4] text-[#7a1d38] py-2.5 rounded-xl text-sm font-semibold text-center group-hover:bg-[#7a1d38] group-hover:text-white transition-all">
                           ✅ Presensi
                         </span>
-                        <span className="flex-1 bg-emerald-50 text-emerald-700 py-2 rounded-lg text-sm font-semibold text-center group-hover:bg-emerald-100 transition-colors">
+                        <span className="flex-1 bg-gray-50 text-gray-600 py-2.5 rounded-xl text-sm font-semibold text-center group-hover:bg-[#fdf2f4] group-hover:text-[#7a1d38] transition-all">
                           📚 Materi
                         </span>
                       </div>
                       <div className="mt-3 text-center">
-                        <span className="text-xs text-blue-500 font-medium group-hover:underline">
+                        <span className="text-xs text-[#7a1d38] font-medium group-hover:underline">
                           Klik untuk melihat detail →
                         </span>
                       </div>

@@ -345,10 +345,10 @@ export default function KRSPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-600">Memuat data...</p>
+          <div className="animate-spin w-12 h-12 border-4 border-[#7a1d38] border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat data...</p>
         </div>
       </div>
     );
@@ -357,83 +357,120 @@ export default function KRSPage() {
   // ========== TAMPILAN KAPRODI ==========
   if (role === "kaprodi") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
         {/* Header */}
         <header className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">
-            📋 Persetujuan KRS
-          </h1>
-          <p className="text-slate-600 text-lg">
-            {CURRENT_SEMESTER} • Review dan setujui pengajuan KRS mahasiswa
-          </p>
+          <div className="flex items-center gap-4 mb-2">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl flex items-center justify-center shadow-lg">
+              <span className="text-white text-xl">📋</span>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Persetujuan KRS
+              </h1>
+              <p className="text-gray-500">
+                {CURRENT_SEMESTER} • Review dan setujui pengajuan KRS mahasiswa
+              </p>
+            </div>
+          </div>
         </header>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-5 border-l-4 border-blue-500">
-            <p className="text-slate-500 text-sm">Total Pengajuan</p>
-            <p className="text-2xl font-bold text-slate-900">
-              {pengajuanList.length}
-            </p>
+          <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-md hover:border-[#7a1d38]/20 transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#fdf2f4] rounded-xl flex items-center justify-center">
+                <span className="text-[#7a1d38]">📊</span>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Total Pengajuan</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {pengajuanList.length}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-xl shadow-lg p-5 border-l-4 border-yellow-500">
-            <p className="text-slate-500 text-sm">Menunggu</p>
-            <p className="text-2xl font-bold text-yellow-600">
-              {pengajuanList.filter((p) => p.status === "pending").length}
-            </p>
+          <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+                <span className="text-amber-600">⏳</span>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Menunggu</p>
+                <p className="text-2xl font-bold text-amber-600">
+                  {pengajuanList.filter((p) => p.status === "pending").length}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-xl shadow-lg p-5 border-l-4 border-green-500">
-            <p className="text-slate-500 text-sm">Disetujui</p>
-            <p className="text-2xl font-bold text-green-600">
-              {pengajuanList.filter((p) => p.status === "approved").length}
-            </p>
+          <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
+                <span className="text-green-600">✅</span>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Disetujui</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {pengajuanList.filter((p) => p.status === "approved").length}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-xl shadow-lg p-5 border-l-4 border-red-500">
-            <p className="text-slate-500 text-sm">Ditolak</p>
-            <p className="text-2xl font-bold text-red-600">
-              {pengajuanList.filter((p) => p.status === "rejected").length}
-            </p>
+          <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
+                <span className="text-red-600">❌</span>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Ditolak</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {pengajuanList.filter((p) => p.status === "rejected").length}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Daftar Pengajuan */}
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
-              <h2 className="text-xl font-bold text-white">
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-[#7a1d38] to-[#5c1529] px-6 py-4">
+              <h2 className="text-lg font-bold text-white">
                 Daftar Pengajuan KRS
               </h2>
             </div>
 
             {pengajuanList.length === 0 ? (
-              <div className="p-12 text-center text-slate-500">
-                <span className="text-5xl block mb-4">📭</span>
+              <div className="p-12 text-center text-gray-500">
+                <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <span className="text-3xl">📭</span>
+                </div>
                 <p>Belum ada pengajuan KRS.</p>
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y divide-gray-100">
                 {pengajuanList.map((pengajuan) => (
                   <div
                     key={pengajuan.id}
                     onClick={() => setSelectedPengajuan(pengajuan)}
-                    className={`p-4 hover:bg-slate-50 cursor-pointer transition-colors ${
+                    className={`p-4 hover:bg-[#fdf2f4] cursor-pointer transition-colors ${
                       selectedPengajuan?.id === pengajuan.id
-                        ? "bg-blue-50 border-l-4 border-blue-500"
+                        ? "bg-[#fdf2f4] border-l-4 border-[#7a1d38]"
                         : ""
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white font-bold">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7a1d38] to-[#9e2a4a] flex items-center justify-center text-white font-bold">
                           {pengajuan.profiles?.username
                             ?.charAt(0)
                             .toUpperCase() || "?"}
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-900">
+                          <p className="font-semibold text-gray-900">
                             {pengajuan.profiles?.username || "Unknown"}
                           </p>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-sm text-gray-500">
                             {pengajuan.profiles?.jurusan || "-"} •{" "}
                             {pengajuan.total_sks} SKS
                           </p>
@@ -454,37 +491,37 @@ export default function KRSPage() {
           </div>
 
           {/* Detail Pengajuan */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
-              <h2 className="text-xl font-bold text-white">Detail Pengajuan</h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-[#5c1529] to-[#7a1d38] px-6 py-4">
+              <h2 className="text-lg font-bold text-white">Detail Pengajuan</h2>
             </div>
 
             {selectedPengajuan ? (
               <div className="p-6">
                 <div className="mb-6">
-                  <p className="text-sm text-slate-500">Mahasiswa</p>
-                  <p className="font-bold text-slate-900 text-lg">
+                  <p className="text-sm text-gray-500">Mahasiswa</p>
+                  <p className="font-bold text-gray-900 text-lg">
                     {selectedPengajuan.profiles?.username}
                   </p>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-gray-600">
                     {selectedPengajuan.profiles?.jurusan}
                   </p>
                 </div>
 
                 <div className="mb-6">
-                  <p className="text-sm text-slate-500 mb-2">
+                  <p className="text-sm text-gray-500 mb-2">
                     Mata Kuliah Diajukan
                   </p>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {selectedPengajuan.krs_detail?.map((detail) => (
                       <div
                         key={detail.id}
-                        className="bg-slate-50 p-3 rounded-lg"
+                        className="bg-gray-50 p-3 rounded-xl"
                       >
-                        <p className="font-medium text-slate-900">
+                        <p className="font-medium text-gray-900">
                           {detail.matakuliah?.nama_mk}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-gray-500">
                           {detail.matakuliah?.kode_mk} •{" "}
                           {detail.matakuliah?.sks} SKS
                         </p>
@@ -493,9 +530,9 @@ export default function KRSPage() {
                   </div>
                 </div>
 
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-700">Total SKS</p>
-                  <p className="text-2xl font-bold text-blue-900">
+                <div className="mb-6 p-4 bg-[#fdf2f4] rounded-xl border border-[#f9d0d9]">
+                  <p className="text-sm text-[#7a1d38]">Total SKS</p>
+                  <p className="text-2xl font-bold text-[#5c1529]">
                     {selectedPengajuan.total_sks} SKS
                   </p>
                 </div>
@@ -503,14 +540,14 @@ export default function KRSPage() {
                 {selectedPengajuan.status === "pending" && (
                   <>
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Catatan (Opsional)
                       </label>
                       <textarea
                         value={catatan}
                         onChange={(e) => setCatatan(e.target.value)}
                         placeholder="Tambahkan catatan jika perlu..."
-                        className="w-full px-3 py-2 border rounded-lg text-sm resize-none"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent"
                         rows={3}
                       />
                     </div>
@@ -536,10 +573,10 @@ export default function KRSPage() {
 
                 {selectedPengajuan.status !== "pending" && (
                   <div
-                    className={`p-4 rounded-lg ${
+                    className={`p-4 rounded-xl ${
                       selectedPengajuan.status === "approved"
-                        ? "bg-green-50"
-                        : "bg-red-50"
+                        ? "bg-green-50 border border-green-100"
+                        : "bg-red-50 border border-red-100"
                     }`}
                   >
                     <p
@@ -554,7 +591,7 @@ export default function KRSPage() {
                         : "✕ Sudah Ditolak"}
                     </p>
                     {selectedPengajuan.catatan && (
-                      <p className="text-sm mt-1 text-slate-600">
+                      <p className="text-sm mt-1 text-gray-600">
                         Catatan: {selectedPengajuan.catatan}
                       </p>
                     )}
@@ -562,8 +599,10 @@ export default function KRSPage() {
                 )}
               </div>
             ) : (
-              <div className="p-12 text-center text-slate-500">
-                <span className="text-4xl block mb-2">👆</span>
+              <div className="p-12 text-center text-gray-500">
+                <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <span className="text-2xl">👆</span>
+                </div>
                 <p>Pilih pengajuan untuk melihat detail</p>
               </div>
             )}
@@ -575,30 +614,37 @@ export default function KRSPage() {
 
   // ========== TAMPILAN MAHASISWA ==========
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
       {/* Header */}
       <header className="mb-8">
-        <h1 className="text-4xl font-bold text-slate-900 mb-2">
-          📄 Kartu Rencana Studi
-        </h1>
-        <p className="text-slate-600 text-lg">{CURRENT_SEMESTER}</p>
+        <div className="flex items-center gap-4 mb-2">
+          <div className="w-12 h-12 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-white text-xl">📄</span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Kartu Rencana Studi
+            </h1>
+            <p className="text-gray-500">{CURRENT_SEMESTER}</p>
+          </div>
+        </div>
       </header>
 
       {/* Status Pengajuan */}
       {existingPengajuan && (
         <div
-          className={`mb-6 p-4 rounded-xl border-l-4 ${
+          className={`mb-6 p-5 rounded-2xl border ${
             existingPengajuan.status === "pending"
-              ? "bg-yellow-50 border-yellow-500"
+              ? "bg-amber-50 border-amber-200"
               : existingPengajuan.status === "approved"
-              ? "bg-green-50 border-green-500"
-              : "bg-red-50 border-red-500"
+              ? "bg-green-50 border-green-200"
+              : "bg-red-50 border-red-200"
           }`}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-bold text-slate-900">Status Pengajuan KRS</p>
-              <p className="text-sm text-slate-600">
+              <p className="font-bold text-gray-900">Status Pengajuan KRS</p>
+              <p className="text-sm text-gray-600">
                 {existingPengajuan.status === "pending" &&
                   "Pengajuan Anda sedang menunggu persetujuan Kaprodi."}
                 {existingPengajuan.status === "approved" &&
@@ -627,9 +673,11 @@ export default function KRSPage() {
         {/* Daftar Mata Kuliah */}
         <div className="lg:col-span-2 space-y-6">
           {Object.keys(groupedMataKuliah).length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-              <span className="text-5xl block mb-4">🎉</span>
-              <p className="text-slate-600 text-lg">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+              <div className="w-16 h-16 bg-[#fdf2f4] rounded-full mx-auto mb-4 flex items-center justify-center">
+                <span className="text-3xl">🎉</span>
+              </div>
+              <p className="text-gray-600 text-lg">
                 Semua mata kuliah sudah pernah diambil!
               </p>
             </div>
@@ -639,13 +687,13 @@ export default function KRSPage() {
               .map(([semester, mkList]) => (
                 <div
                   key={semester}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden"
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
                 >
-                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                  <div className="bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] px-6 py-4">
                     <h2 className="text-lg font-bold text-white">
                       Semester {semester}
                     </h2>
-                    <p className="text-blue-100 text-sm">
+                    <p className="text-white/70 text-sm">
                       {mkList.length} mata kuliah tersedia
                     </p>
                   </div>
@@ -662,8 +710,8 @@ export default function KRSPage() {
                           onClick={() => !isDisabled && toggleMataKuliah(mk.id)}
                           className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
                             isSelected
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-slate-200 hover:border-slate-300"
+                              ? "border-[#7a1d38] bg-[#fdf2f4]"
+                              : "border-gray-200 hover:border-[#7a1d38]/40"
                           } ${
                             isDisabled ? "opacity-60 cursor-not-allowed" : ""
                           }`}
@@ -673,8 +721,8 @@ export default function KRSPage() {
                               <div
                                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                                   isSelected
-                                    ? "border-blue-500 bg-blue-500 text-white"
-                                    : "border-slate-300"
+                                    ? "border-[#7a1d38] bg-[#7a1d38] text-white"
+                                    : "border-gray-300"
                                 }`}
                               >
                                 {isSelected && (
@@ -694,15 +742,15 @@ export default function KRSPage() {
                                 )}
                               </div>
                               <div>
-                                <p className="font-semibold text-slate-900">
+                                <p className="font-semibold text-gray-900">
                                   {mk.nama_mk}
                                 </p>
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-gray-500">
                                   {mk.kode_mk}
                                 </p>
                               </div>
                             </div>
-                            <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-sm font-medium">
+                            <span className="px-3 py-1 bg-[#fdf2f4] text-[#7a1d38] rounded-full text-sm font-medium">
                               {mk.sks} SKS
                             </span>
                           </div>
@@ -718,19 +766,19 @@ export default function KRSPage() {
         {/* Sidebar Ringkasan */}
         <div className="space-y-6">
           {/* Mata Kuliah Dipilih */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden sticky top-8">
-            <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-8">
+            <div className="bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] px-6 py-4">
               <h2 className="text-lg font-bold text-white">
                 Mata Kuliah Dipilih
               </h2>
-              <p className="text-green-100 text-sm">
+              <p className="text-white/80 text-sm">
                 {selectedMataKuliah.length} mata kuliah
               </p>
             </div>
 
             <div className="p-4">
               {selectedMataKuliah.length === 0 ? (
-                <p className="text-slate-500 text-center py-4">
+                <p className="text-gray-500 text-center py-4">
                   Belum ada yang dipilih
                 </p>
               ) : (
@@ -740,15 +788,15 @@ export default function KRSPage() {
                     .map((mk) => (
                       <div
                         key={mk.id}
-                        className="flex items-center justify-between p-2 bg-slate-50 rounded-lg"
+                        className="flex items-center justify-between p-2 bg-[#fdf2f4] rounded-lg"
                       >
                         <div>
-                          <p className="text-sm font-medium text-slate-900">
+                          <p className="text-sm font-medium text-gray-900">
                             {mk.nama_mk}
                           </p>
-                          <p className="text-xs text-slate-500">{mk.kode_mk}</p>
+                          <p className="text-xs text-gray-500">{mk.kode_mk}</p>
                         </div>
-                        <span className="text-xs font-semibold text-slate-600">
+                        <span className="text-xs font-semibold text-[#7a1d38]">
                           {mk.sks} SKS
                         </span>
                       </div>
@@ -757,14 +805,14 @@ export default function KRSPage() {
               )}
 
               {/* Total SKS */}
-              <div className="border-t pt-4">
+              <div className="border-t border-gray-100 pt-4">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="font-medium text-slate-700">Total SKS</span>
+                  <span className="font-medium text-gray-700">Total SKS</span>
                   <span
                     className={`text-2xl font-bold ${
                       calculateTotalSKS() > 24
                         ? "text-red-600"
-                        : "text-blue-600"
+                        : "text-[#7a1d38]"
                     }`}
                   >
                     {calculateTotalSKS()} / 24
@@ -785,7 +833,7 @@ export default function KRSPage() {
                       selectedMataKuliah.length === 0 ||
                       calculateTotalSKS() > 24
                     }
-                    className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="w-full bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white py-3 rounded-xl font-bold hover:from-[#5c1529] hover:to-[#7a1d38] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
                   >
                     {submitting
                       ? "Mengirim..."
@@ -799,9 +847,9 @@ export default function KRSPage() {
           </div>
 
           {/* Info */}
-          <div className="bg-blue-50 rounded-xl p-4">
-            <h3 className="font-bold text-blue-900 mb-2">ℹ️ Informasi</h3>
-            <ul className="text-sm text-blue-800 space-y-1">
+          <div className="bg-[#fdf2f4] rounded-xl p-4 border border-[#f9d0d9]">
+            <h3 className="font-bold text-[#7a1d38] mb-2">ℹ️ Informasi</h3>
+            <ul className="text-sm text-[#5c1529] space-y-1">
               <li>• Maksimal pengambilan 24 SKS per semester</li>
               <li>• Mata kuliah yang sudah diambil tidak ditampilkan</li>
               <li>• Pengajuan harus disetujui oleh Kaprodi</li>

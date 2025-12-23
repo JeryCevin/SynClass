@@ -389,10 +389,10 @@ export default function KelasDetailPage() {
   // ==================== RENDER ====================
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-600">Memuat data kelas...</p>
+          <div className="animate-spin w-12 h-12 border-4 border-[#7a1d38] border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat data kelas...</p>
         </div>
       </div>
     );
@@ -400,13 +400,15 @@ export default function KelasDetailPage() {
 
   if (!matakuliah) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-          <span className="text-6xl block mb-4">❌</span>
-          <p className="text-slate-600 text-lg mb-4">Kelas tidak ditemukan.</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+          <div className="w-20 h-20 bg-red-50 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <span className="text-4xl">❌</span>
+          </div>
+          <p className="text-gray-600 text-lg mb-4">Kelas tidak ditemukan.</p>
           <button
             onClick={() => router.push("/list-kelas")}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700"
+            className="px-6 py-3 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl font-medium hover:from-[#5c1529] hover:to-[#7a1d38] transition-all shadow-md"
           >
             ← Kembali ke Jadwal
           </button>
@@ -421,12 +423,12 @@ export default function KelasDetailPage() {
       : "Belum Diatur";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white">
+      <div className="bg-gradient-to-r from-[#7a1d38] to-[#5c1529] px-8 py-6 text-white">
         <button
           onClick={() => router.push("/list-kelas")}
-          className="mb-4 flex items-center gap-2 text-blue-100 hover:text-white transition"
+          className="mb-4 flex items-center gap-2 text-white/70 hover:text-white transition"
         >
           <svg
             className="w-5 h-5"
@@ -446,42 +448,63 @@ export default function KelasDetailPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <span className="bg-white/20 px-3 py-1 rounded-lg text-sm font-medium">
+              <span className="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-sm">
                 {matakuliah.kode_mk}
               </span>
-              <span className="bg-white/20 px-3 py-1 rounded-lg text-sm font-medium">
+              <span className="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-sm">
                 {matakuliah.sks} SKS
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold">
               {matakuliah.nama_mk}
             </h1>
-            <p className="text-blue-100 mt-1">
-              👤 {matakuliah.profiles?.username || "Dosen"} • 📅{" "}
-              {matakuliah.hari || "Belum Diatur"} • 🕐 {jam} • 📍{" "}
-              {matakuliah.ruangan || "TBA"}
-            </p>
+            <div className="flex flex-wrap items-center gap-4 text-white/80 mt-2 text-sm">
+              <span className="flex items-center gap-1.5">
+                <span className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center text-xs">
+                  👤
+                </span>
+                {matakuliah.profiles?.username || "Dosen"}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center text-xs">
+                  📅
+                </span>
+                {matakuliah.hari || "Belum Diatur"}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center text-xs">
+                  🕐
+                </span>
+                {jam}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center text-xs">
+                  📍
+                </span>
+                {matakuliah.ruangan || "TBA"}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mt-6">
+        <div className="flex gap-3 mt-6">
           <button
             onClick={() => setActiveTab("presensi")}
-            className={`px-6 py-3 rounded-xl font-medium transition ${
+            className={`px-6 py-3 rounded-xl font-medium transition-all ${
               activeTab === "presensi"
-                ? "bg-white text-blue-600 shadow-lg"
-                : "bg-blue-500/30 text-white hover:bg-blue-500/50"
+                ? "bg-white text-[#7a1d38] shadow-lg"
+                : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm"
             }`}
           >
             ✅ Presensi
           </button>
           <button
             onClick={() => setActiveTab("materi")}
-            className={`px-6 py-3 rounded-xl font-medium transition ${
+            className={`px-6 py-3 rounded-xl font-medium transition-all ${
               activeTab === "materi"
-                ? "bg-white text-blue-600 shadow-lg"
-                : "bg-blue-500/30 text-white hover:bg-blue-500/50"
+                ? "bg-white text-[#7a1d38] shadow-lg"
+                : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm"
             }`}
           >
             📚 Materi & Tugas
@@ -497,12 +520,12 @@ export default function KelasDetailPage() {
             {/* Dosen: Tombol Buat Sesi */}
             {role !== "mahasiswa" && (
               <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-slate-800">
+                <h2 className="text-xl font-bold text-gray-800">
                   Sesi Presensi
                 </h2>
                 <button
                   onClick={() => setShowSessionForm(true)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 flex items-center gap-2"
+                  className="bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white px-5 py-2.5 rounded-xl font-medium hover:from-[#5c1529] hover:to-[#7a1d38] flex items-center gap-2 shadow-md transition-all"
                 >
                   <svg
                     className="w-5 h-5"
@@ -528,17 +551,17 @@ export default function KelasDetailPage() {
                 <div
                   key={session.id}
                   onClick={() => handleSelectSession(session)}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition ${
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
                     selectedSession?.id === session.id
-                      ? "border-blue-500 bg-blue-50 shadow-md"
-                      : "border-gray-200 bg-white hover:border-blue-300 hover:shadow"
+                      ? "border-[#7a1d38] bg-[#fdf2f4] shadow-md"
+                      : "border-gray-200 bg-white hover:border-[#7a1d38]/40 hover:shadow"
                   }`}
                 >
-                  <p className="font-bold text-slate-900">
+                  <p className="font-bold text-gray-900">
                     Pertemuan {session.pertemuan}
                   </p>
-                  <p className="text-sm text-slate-500">{session.tanggal}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm text-gray-500">{session.tanggal}</p>
+                  <p className="text-xs text-gray-400">
                     {session.waktu_mulai} - {session.waktu_selesai}
                   </p>
                   {session.is_active && (
@@ -549,7 +572,7 @@ export default function KelasDetailPage() {
                 </div>
               ))}
               {presensiSessions.length === 0 && (
-                <div className="col-span-full bg-white rounded-xl p-8 text-center text-slate-500">
+                <div className="col-span-full bg-white rounded-xl p-8 text-center text-gray-500 border border-gray-100">
                   Belum ada sesi presensi.
                 </div>
               )}
@@ -557,13 +580,13 @@ export default function KelasDetailPage() {
 
             {/* Detail Sesi */}
             {selectedSession && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div className="flex justify-between items-center mb-6">
                   <div>
-                    <h3 className="font-bold text-xl text-slate-900">
+                    <h3 className="font-bold text-xl text-gray-900">
                       Presensi Pertemuan {selectedSession.pertemuan}
                     </h3>
-                    <p className="text-slate-500 text-sm">
+                    <p className="text-gray-500 text-sm">
                       {selectedSession.tanggal} • {selectedSession.waktu_mulai}{" "}
                       - {selectedSession.waktu_selesai}
                     </p>
@@ -588,15 +611,15 @@ export default function KelasDetailPage() {
                 {role === "mahasiswa" && (
                   <div>
                     {!selectedSession.is_active ? (
-                      <div className="bg-slate-50 rounded-xl p-6 text-center">
+                      <div className="bg-gray-50 rounded-xl p-6 text-center">
                         <span className="text-4xl block mb-2">🔒</span>
-                        <p className="text-slate-500">
+                        <p className="text-gray-500">
                           Presensi belum dibuka oleh dosen.
                         </p>
                       </div>
                     ) : (
                       <div>
-                        <p className="mb-4 text-slate-600 font-medium">
+                        <p className="mb-4 text-gray-600 font-medium">
                           Pilih status kehadiran Anda:
                         </p>
                         <div className="flex gap-4 flex-wrap">
@@ -607,7 +630,7 @@ export default function KelasDetailPage() {
                               className={`px-6 py-4 rounded-xl font-medium transition flex items-center gap-2 ${
                                 myPresensi?.status === opt.value
                                   ? opt.color +
-                                    " ring-2 ring-offset-2 ring-blue-500 shadow-md"
+                                    " ring-2 ring-offset-2 ring-[#7a1d38] shadow-md"
                                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                               }`}
                             >
@@ -617,7 +640,7 @@ export default function KelasDetailPage() {
                           ))}
                         </div>
                         {myPresensi && (
-                          <p className="mt-4 text-sm text-slate-500 bg-slate-50 inline-block px-4 py-2 rounded-lg">
+                          <p className="mt-4 text-sm text-gray-500 bg-gray-50 inline-block px-4 py-2 rounded-lg">
                             ✅ Tercatat:{" "}
                             {new Date(
                               myPresensi.waktu_presensi || ""
@@ -633,32 +656,32 @@ export default function KelasDetailPage() {
                 {role !== "mahasiswa" && (
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-slate-100 rounded-t-xl">
+                      <thead className="bg-[#fdf2f4] rounded-t-xl">
                         <tr>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600 rounded-tl-xl">
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-[#7a1d38] rounded-tl-xl">
                             No
                           </th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-[#7a1d38]">
                             NIM
                           </th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-[#7a1d38]">
                             Nama
                           </th>
-                          <th className="px-4 py-3 text-center text-sm font-semibold text-slate-600 rounded-tr-xl">
+                          <th className="px-4 py-3 text-center text-sm font-semibold text-[#7a1d38] rounded-tr-xl">
                             Status
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y">
+                      <tbody className="divide-y divide-gray-100">
                         {presensiList.map((p, idx) => (
-                          <tr key={p.id} className="hover:bg-slate-50">
-                            <td className="px-4 py-3 text-slate-600">
+                          <tr key={p.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-gray-600">
                               {idx + 1}
                             </td>
-                            <td className="px-4 py-3 text-slate-600 font-mono">
+                            <td className="px-4 py-3 text-gray-600 font-mono">
                               {p.profiles?.nim || "-"}
                             </td>
-                            <td className="px-4 py-3 text-slate-900 font-medium">
+                            <td className="px-4 py-3 text-gray-900 font-medium">
                               {p.profiles?.username || "-"}
                             </td>
                             <td className="px-4 py-3 text-center">
@@ -686,7 +709,7 @@ export default function KelasDetailPage() {
                           <tr>
                             <td
                               colSpan={4}
-                              className="px-4 py-8 text-center text-slate-500"
+                              className="px-4 py-8 text-center text-gray-500"
                             >
                               Belum ada data presensi mahasiswa.
                             </td>
@@ -707,13 +730,13 @@ export default function KelasDetailPage() {
             {/* Daftar Post */}
             <div className="lg:col-span-1">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-slate-800">
+                <h2 className="text-xl font-bold text-gray-800">
                   Daftar Materi & Tugas
                 </h2>
                 {role !== "mahasiswa" && (
                   <button
                     onClick={() => setShowPostForm(true)}
-                    className="bg-emerald-600 text-white p-2 rounded-lg hover:bg-emerald-700"
+                    className="bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white p-2.5 rounded-xl hover:from-[#5c1529] hover:to-[#7a1d38] shadow-md transition-all"
                     title="Tambah Materi/Tugas"
                   >
                     <svg
@@ -738,27 +761,27 @@ export default function KelasDetailPage() {
                   <div
                     key={post.id}
                     onClick={() => handleSelectPost(post)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition ${
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
                       selectedPost?.id === post.id
-                        ? "border-emerald-500 bg-emerald-50 shadow-md"
-                        : "border-gray-200 bg-white hover:border-emerald-300 hover:shadow"
+                        ? "border-[#7a1d38] bg-[#fdf2f4] shadow-md"
+                        : "border-gray-200 bg-white hover:border-[#7a1d38]/40 hover:shadow"
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <span
                         className={`px-2 py-1 rounded text-xs font-bold ${
                           post.jenis === "tugas"
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-blue-100 text-blue-700"
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-[#fdf2f4] text-[#7a1d38]"
                         }`}
                       >
                         {post.jenis === "tugas" ? "📝 Tugas" : "📖 Materi"}
                       </span>
-                      <span className="text-slate-400 text-xs">
+                      <span className="text-gray-400 text-xs">
                         P{post.pertemuan}
                       </span>
                     </div>
-                    <h4 className="font-semibold text-slate-900 line-clamp-1">
+                    <h4 className="font-semibold text-gray-900 line-clamp-1">
                       {post.judul}
                     </h4>
                     {post.jenis === "tugas" && post.deadline && (
@@ -769,7 +792,7 @@ export default function KelasDetailPage() {
                   </div>
                 ))}
                 {posts.length === 0 && (
-                  <div className="bg-white rounded-xl p-8 text-center text-slate-500 border-2 border-dashed">
+                  <div className="bg-white rounded-xl p-8 text-center text-gray-500 border-2 border-dashed border-gray-200">
                     Belum ada materi atau tugas.
                   </div>
                 )}
@@ -779,27 +802,27 @@ export default function KelasDetailPage() {
             {/* Detail Post */}
             <div className="lg:col-span-2">
               {selectedPost ? (
-                <div className="bg-white rounded-2xl shadow-lg p-6">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <span
                       className={`px-3 py-1 rounded-lg text-sm font-bold ${
                         selectedPost.jenis === "tugas"
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-blue-100 text-blue-700"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-[#fdf2f4] text-[#7a1d38]"
                       }`}
                     >
                       {selectedPost.jenis === "tugas"
                         ? "📝 Tugas"
                         : "📖 Materi"}
                     </span>
-                    <span className="text-slate-400 text-sm">
+                    <span className="text-gray-400 text-sm">
                       Pertemuan {selectedPost.pertemuan}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
                     {selectedPost.judul}
                   </h3>
-                  <p className="text-slate-600 whitespace-pre-wrap mb-4 leading-relaxed">
+                  <p className="text-gray-600 whitespace-pre-wrap mb-4 leading-relaxed">
                     {selectedPost.deskripsi}
                   </p>
 
@@ -808,14 +831,14 @@ export default function KelasDetailPage() {
                       href={selectedPost.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-100 transition mb-4"
+                      className="inline-flex items-center gap-2 bg-[#fdf2f4] text-[#7a1d38] px-4 py-2 rounded-lg hover:bg-[#fce7ea] transition mb-4"
                     >
                       🔗 Buka Link Materi/File
                     </a>
                   )}
 
                   {selectedPost.jenis === "tugas" && selectedPost.deadline && (
-                    <div className="bg-red-50 border border-red-100 rounded-lg p-3 mb-4">
+                    <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-4">
                       <p className="text-red-600 font-medium">
                         ⏰ Deadline:{" "}
                         {new Date(selectedPost.deadline).toLocaleString(
@@ -827,19 +850,19 @@ export default function KelasDetailPage() {
 
                   {/* Mahasiswa: Submit Tugas */}
                   {role === "mahasiswa" && selectedPost.jenis === "tugas" && (
-                    <div className="mt-6 pt-6 border-t">
-                      <h4 className="font-bold text-slate-900 mb-4">
+                    <div className="mt-6 pt-6 border-t border-gray-100">
+                      <h4 className="font-bold text-gray-900 mb-4">
                         📤 Pengumpulan Tugas
                       </h4>
                       {mySubmission ? (
-                        <div className="bg-slate-50 p-4 rounded-xl">
+                        <div className="bg-gray-50 p-4 rounded-xl">
                           <p className="font-medium text-green-600 mb-3">
                             ✅ Tugas Sudah Dikumpulkan
                           </p>
                           {mySubmission.jawaban_text && (
                             <div className="mb-2">
-                              <p className="text-sm text-slate-500">Jawaban:</p>
-                              <p className="text-slate-700">
+                              <p className="text-sm text-gray-500">Jawaban:</p>
+                              <p className="text-gray-700">
                                 {mySubmission.jawaban_text}
                               </p>
                             </div>
@@ -849,7 +872,7 @@ export default function KelasDetailPage() {
                               href={mySubmission.jawaban_link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:underline"
+                              className="text-sm text-[#7a1d38] hover:underline"
                             >
                               🔗 Lihat File
                             </a>
@@ -874,7 +897,7 @@ export default function KelasDetailPage() {
                               });
                               setShowSubmitForm(true);
                             }}
-                            className="mt-4 text-blue-600 hover:underline text-sm font-medium"
+                            className="mt-4 text-[#7a1d38] hover:underline text-sm font-medium"
                           >
                             ✏️ Edit Jawaban
                           </button>
@@ -882,7 +905,7 @@ export default function KelasDetailPage() {
                       ) : (
                         <button
                           onClick={() => setShowSubmitForm(true)}
-                          className="bg-orange-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-orange-600 transition"
+                          className="bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white px-6 py-3 rounded-xl font-medium hover:from-[#5c1529] hover:to-[#7a1d38] transition-all shadow-md"
                         >
                           📤 Kumpulkan Tugas
                         </button>
@@ -892,33 +915,33 @@ export default function KelasDetailPage() {
 
                   {/* Dosen: Lihat Submissions */}
                   {role !== "mahasiswa" && selectedPost.jenis === "tugas" && (
-                    <div className="mt-6 pt-6 border-t">
-                      <h4 className="font-bold text-slate-900 mb-4">
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h4 className="font-bold text-gray-900 mb-4">
                         📋 Jawaban Mahasiswa ({submissions.length})
                       </h4>
                       <div className="space-y-4">
                         {submissions.map((sub) => (
                           <div
                             key={sub.id}
-                            className="bg-slate-50 p-4 rounded-xl"
+                            className="bg-[#fdf2f4] p-4 rounded-xl"
                           >
                             <div className="flex justify-between items-start mb-3">
                               <div>
-                                <p className="font-medium text-slate-900">
+                                <p className="font-medium text-gray-900">
                                   {sub.profiles?.username}
                                 </p>
-                                <p className="text-xs text-slate-400">
+                                <p className="text-xs text-gray-500">
                                   NIM: {sub.profiles?.nim}
                                 </p>
                               </div>
-                              <span className="text-xs text-slate-500 bg-white px-2 py-1 rounded">
+                              <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded-lg">
                                 {new Date(sub.submitted_at).toLocaleString(
                                   "id-ID"
                                 )}
                               </span>
                             </div>
                             {sub.jawaban_text && (
-                              <p className="text-sm text-slate-600 mb-2 bg-white p-3 rounded-lg">
+                              <p className="text-sm text-gray-600 mb-2 bg-white p-3 rounded-lg">
                                 {sub.jawaban_text}
                               </p>
                             )}
@@ -927,12 +950,12 @@ export default function KelasDetailPage() {
                                 href={sub.jawaban_link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-sm text-blue-600 hover:underline inline-block mb-3"
+                                className="text-sm text-[#7a1d38] hover:underline inline-block mb-3"
                               >
                                 🔗 Lihat File
                               </a>
                             )}
-                            <div className="flex items-center gap-3 mt-3 pt-3 border-t">
+                            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[#f9d0d9]">
                               <input
                                 type="number"
                                 placeholder="Nilai"
@@ -969,7 +992,7 @@ export default function KelasDetailPage() {
                                     feedback
                                   );
                                 }}
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+                                className="px-4 py-2 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-lg text-sm font-medium hover:from-[#5c1529] hover:to-[#7a1d38] transition-all"
                               >
                                 💾 Simpan
                               </button>
@@ -977,7 +1000,7 @@ export default function KelasDetailPage() {
                           </div>
                         ))}
                         {submissions.length === 0 && (
-                          <p className="text-slate-500 text-center py-8 bg-slate-50 rounded-xl">
+                          <p className="text-gray-500 text-center py-8 bg-[#fdf2f4] rounded-xl">
                             Belum ada yang mengumpulkan tugas.
                           </p>
                         )}
@@ -986,9 +1009,9 @@ export default function KelasDetailPage() {
                   )}
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
                   <span className="text-5xl block mb-4">📚</span>
-                  <p className="text-slate-500">
+                  <p className="text-gray-500">
                     Pilih materi atau tugas untuk melihat detail.
                   </p>
                 </div>
@@ -1003,13 +1026,13 @@ export default function KelasDetailPage() {
       {/* Form Buat Sesi Presensi */}
       {showSessionForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6">
-            <h3 className="text-xl font-bold text-slate-900 mb-6">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 mx-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">
               Buat Sesi Presensi
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Pertemuan Ke-
                 </label>
                 <input
@@ -1021,12 +1044,12 @@ export default function KelasDetailPage() {
                       pertemuan: parseInt(e.target.value),
                     })
                   }
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   min="1"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Tanggal
                 </label>
                 <input
@@ -1035,12 +1058,12 @@ export default function KelasDetailPage() {
                   onChange={(e) =>
                     setSessionForm({ ...sessionForm, tanggal: e.target.value })
                   }
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Waktu Mulai
                   </label>
                   <input
@@ -1052,11 +1075,11 @@ export default function KelasDetailPage() {
                         waktu_mulai: e.target.value,
                       })
                     }
-                    className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Waktu Selesai
                   </label>
                   <input
@@ -1068,7 +1091,7 @@ export default function KelasDetailPage() {
                         waktu_selesai: e.target.value,
                       })
                     }
-                    className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -1076,13 +1099,13 @@ export default function KelasDetailPage() {
             <div className="mt-8 flex justify-end gap-3">
               <button
                 onClick={() => setShowSessionForm(false)}
-                className="px-5 py-2.5 border rounded-xl text-slate-600 hover:bg-slate-50"
+                className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={handleCreateSession}
-                className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700"
+                className="px-5 py-2.5 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl font-medium hover:from-[#5c1529] hover:to-[#7a1d38] transition-all shadow-md"
               >
                 Simpan
               </button>
@@ -1094,13 +1117,13 @@ export default function KelasDetailPage() {
       {/* Form Buat Post */}
       {showPostForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-slate-900 mb-6">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">
               Buat Materi / Tugas
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Jenis
                 </label>
                 <select
@@ -1111,14 +1134,14 @@ export default function KelasDetailPage() {
                       jenis: e.target.value as "materi" | "tugas",
                     })
                   }
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                 >
                   <option value="materi">📖 Materi</option>
                   <option value="tugas">📝 Tugas</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Pertemuan Ke-
                 </label>
                 <input
@@ -1130,12 +1153,12 @@ export default function KelasDetailPage() {
                       pertemuan: parseInt(e.target.value),
                     })
                   }
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   min="1"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Judul
                 </label>
                 <input
@@ -1144,12 +1167,12 @@ export default function KelasDetailPage() {
                   onChange={(e) =>
                     setPostForm({ ...postForm, judul: e.target.value })
                   }
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   placeholder="Judul materi/tugas"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Deskripsi
                 </label>
                 <textarea
@@ -1157,13 +1180,13 @@ export default function KelasDetailPage() {
                   onChange={(e) =>
                     setPostForm({ ...postForm, deskripsi: e.target.value })
                   }
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   rows={4}
                   placeholder="Deskripsi atau instruksi..."
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Link (Google Drive, dll)
                 </label>
                 <input
@@ -1172,13 +1195,13 @@ export default function KelasDetailPage() {
                   onChange={(e) =>
                     setPostForm({ ...postForm, link: e.target.value })
                   }
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   placeholder="https://drive.google.com/..."
                 />
               </div>
               {postForm.jenis === "tugas" && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Deadline
                   </label>
                   <input
@@ -1187,7 +1210,7 @@ export default function KelasDetailPage() {
                     onChange={(e) =>
                       setPostForm({ ...postForm, deadline: e.target.value })
                     }
-                    className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   />
                 </div>
               )}
@@ -1195,13 +1218,13 @@ export default function KelasDetailPage() {
             <div className="mt-8 flex justify-end gap-3">
               <button
                 onClick={() => setShowPostForm(false)}
-                className="px-5 py-2.5 border rounded-xl text-slate-600 hover:bg-slate-50"
+                className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={handleCreatePost}
-                className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700"
+                className="px-5 py-2.5 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl font-medium hover:from-[#5c1529] hover:to-[#7a1d38] transition-all shadow-md"
               >
                 Simpan
               </button>
@@ -1213,13 +1236,13 @@ export default function KelasDetailPage() {
       {/* Form Submit Tugas */}
       {showSubmitForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-6">
-            <h3 className="text-xl font-bold text-slate-900 mb-6">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 mx-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">
               Kumpulkan Tugas
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Jawaban (Teks)
                 </label>
                 <textarea
@@ -1230,13 +1253,13 @@ export default function KelasDetailPage() {
                       jawaban_text: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   rows={4}
                   placeholder="Tulis jawaban di sini..."
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Link File (Google Drive)
                 </label>
                 <input
@@ -1248,10 +1271,10 @@ export default function KelasDetailPage() {
                       jawaban_link: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
                   placeholder="https://drive.google.com/..."
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   Upload file ke Google Drive lalu paste linknya di sini
                 </p>
               </div>
@@ -1259,13 +1282,13 @@ export default function KelasDetailPage() {
             <div className="mt-8 flex justify-end gap-3">
               <button
                 onClick={() => setShowSubmitForm(false)}
-                className="px-5 py-2.5 border rounded-xl text-slate-600 hover:bg-slate-50"
+                className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={handleSubmitTugas}
-                className="px-5 py-2.5 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600"
+                className="px-5 py-2.5 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl font-medium hover:from-[#5c1529] hover:to-[#7a1d38] transition-all shadow-md"
               >
                 Kumpulkan
               </button>
