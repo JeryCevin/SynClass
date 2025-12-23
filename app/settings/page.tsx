@@ -9,6 +9,10 @@ interface MataKuliah {
   nama_mk: string;
   sks: number;
   semester: number;
+  hari: string;
+  jam_mulai: string;
+  jam_selesai: string;
+  ruangan: string;
   dosen_id?: string | null;
   profiles?: {
     id: string;
@@ -16,6 +20,8 @@ interface MataKuliah {
     role: string;
   };
 }
+
+const HARI_OPTIONS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("manageUser");
@@ -37,6 +43,10 @@ export default function SettingsPage() {
     nama_mk: "",
     sks: 3,
     semester: 1,
+    hari: "Senin",
+    jam_mulai: "08:00",
+    jam_selesai: "10:00",
+    ruangan: "",
     dosen_id: null,
   });
 
@@ -134,6 +144,10 @@ export default function SettingsPage() {
       nama_mk: "",
       sks: 3,
       semester: 1,
+      hari: "Senin",
+      jam_mulai: "08:00",
+      jam_selesai: "10:00",
+      ruangan: "",
       dosen_id: null,
     });
     setCourseFormError(null);
@@ -147,6 +161,10 @@ export default function SettingsPage() {
       nama_mk: course.nama_mk,
       sks: course.sks,
       semester: course.semester,
+      hari: course.hari || "Senin",
+      jam_mulai: course.jam_mulai || "08:00",
+      jam_selesai: course.jam_selesai || "10:00",
+      ruangan: course.ruangan || "",
       dosen_id: course.dosen_id || null,
     });
     setCourseFormError(null);
@@ -172,6 +190,10 @@ export default function SettingsPage() {
             nama_mk: courseForm.nama_mk.trim(),
             sks: courseForm.sks,
             semester: courseForm.semester,
+            hari: courseForm.hari,
+            jam_mulai: courseForm.jam_mulai,
+            jam_selesai: courseForm.jam_selesai,
+            ruangan: courseForm.ruangan.trim() || null,
             dosen_id: courseForm.dosen_id || null,
           })
           .eq("id", editingCourse.id);
@@ -188,6 +210,10 @@ export default function SettingsPage() {
             nama_mk: courseForm.nama_mk.trim(),
             sks: courseForm.sks,
             semester: courseForm.semester,
+            hari: courseForm.hari,
+            jam_mulai: courseForm.jam_mulai,
+            jam_selesai: courseForm.jam_selesai,
+            ruangan: courseForm.ruangan.trim() || null,
             dosen_id: courseForm.dosen_id || null,
           },
         ]);
@@ -1299,6 +1325,91 @@ export default function SettingsPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Jadwal Section */}
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-semibold text-slate-800 mb-3">
+                  📅 Jadwal Perkuliahan
+                </h4>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Hari
+                    </label>
+                    <select
+                      value={courseForm.hari}
+                      onChange={(e) =>
+                        setCourseForm({
+                          ...courseForm,
+                          hari: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {HARI_OPTIONS.map((h) => (
+                        <option key={h} value={h}>
+                          {h}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Ruangan
+                    </label>
+                    <input
+                      type="text"
+                      value={courseForm.ruangan}
+                      onChange={(e) =>
+                        setCourseForm({
+                          ...courseForm,
+                          ruangan: e.target.value,
+                        })
+                      }
+                      placeholder="Contoh: Lab 1, R.301"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Jam Mulai
+                    </label>
+                    <input
+                      type="time"
+                      value={courseForm.jam_mulai}
+                      onChange={(e) =>
+                        setCourseForm({
+                          ...courseForm,
+                          jam_mulai: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Jam Selesai
+                    </label>
+                    <input
+                      type="time"
+                      value={courseForm.jam_selesai}
+                      onChange={(e) =>
+                        setCourseForm({
+                          ...courseForm,
+                          jam_selesai: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
               </div>
 

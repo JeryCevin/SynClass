@@ -10,6 +10,12 @@ interface MataKuliah {
   nama_mk: string;
   sks: number;
   semester: number;
+  hari: string;
+  jam_mulai: string;
+  jam_selesai: string;
+  ruangan: string;
+  dosen_id: string;
+  profiles?: { username: string };
 }
 
 interface Kelas {
@@ -187,7 +193,7 @@ export default function ListKelasPage() {
       // Dosen/Kaprodi: ambil mata kuliah yang mereka ampu dari tabel matakuliah
       const { data: mkData, error: mkError } = await supabase
         .from("matakuliah")
-        .select("*")
+        .select(`*, profiles:dosen_id (username)`)
         .eq("dosen_id", uid);
 
       if (mkError) {
@@ -197,32 +203,22 @@ export default function ListKelasPage() {
       }
 
       if (mkData && mkData.length > 0) {
-        // Cek apakah ada data di tabel kelas untuk matakuliah ini
-        const mkIds = mkData.map((mk) => mk.id);
-        const { data: kelasData } = await supabase
-          .from("kelas")
-          .select(`*, matakuliah (*), profiles:dosen_id (username)`)
-          .in("matakuliah_id", mkIds)
-          .order("hari")
-          .order("jam");
-
-        if (kelasData && kelasData.length > 0) {
-          setKelasList(kelasData);
-        } else {
-          // Jika tidak ada data di tabel kelas, buat virtual kelas dari matakuliah
-          const virtualKelas: Kelas[] = mkData.map((mk, index) => ({
-            id: `mk-${mk.id}`, // Virtual ID
-            matakuliah_id: mk.id,
-            dosen_id: uid,
-            semester: mk.semester?.toString() || "1",
-            hari: HARI_ORDER[index % 5], // Assign hari default
-            jam: "08:00 - 10:00", // Default jam
-            ruangan: "TBA", // To Be Announced
-            matakuliah: mk,
-            profiles: { username: "Anda" },
-          }));
-          setKelasList(virtualKelas);
-        }
+        // Buat kelas dari data matakuliah (menggunakan jadwal dari matakuliah)
+        const virtualKelas: Kelas[] = mkData.map((mk) => ({
+          id: `mk-${mk.id}`,
+          matakuliah_id: mk.id,
+          dosen_id: uid,
+          semester: mk.semester?.toString() || "1",
+          hari: mk.hari || "Belum Diatur",
+          jam:
+            mk.jam_mulai && mk.jam_selesai
+              ? `${mk.jam_mulai} - ${mk.jam_selesai}`
+              : "Belum Diatur",
+          ruangan: mk.ruangan || "TBA",
+          matakuliah: mk,
+          profiles: mk.profiles || { username: "Anda" },
+        }));
+        setKelasList(virtualKelas);
       } else {
         setKelasList([]);
       }
@@ -244,39 +240,30 @@ export default function ListKelasPage() {
         if (detailData && detailData.length > 0) {
           const mkIds = detailData.map((d) => d.matakuliah_id);
 
-          // Cek dulu di tabel kelas
-          const { data: kelasData } = await supabase
-            .from("kelas")
-            .select(`*, matakuliah (*), profiles:dosen_id (username)`)
-            .in("matakuliah_id", mkIds)
-            .order("hari")
-            .order("jam");
+          // Ambil dari matakuliah dengan jadwal
+          const { data: mkData } = await supabase
+            .from("matakuliah")
+            .select(`*, profiles:dosen_id (username)`)
+            .in("id", mkIds);
 
-          if (kelasData && kelasData.length > 0) {
-            setKelasList(kelasData);
+          if (mkData && mkData.length > 0) {
+            const virtualKelas: Kelas[] = mkData.map((mk) => ({
+              id: `mk-${mk.id}`,
+              matakuliah_id: mk.id,
+              dosen_id: mk.dosen_id,
+              semester: mk.semester?.toString() || "1",
+              hari: mk.hari || "Belum Diatur",
+              jam:
+                mk.jam_mulai && mk.jam_selesai
+                  ? `${mk.jam_mulai} - ${mk.jam_selesai}`
+                  : "Belum Diatur",
+              ruangan: mk.ruangan || "TBA",
+              matakuliah: mk,
+              profiles: mk.profiles || { username: "-" },
+            }));
+            setKelasList(virtualKelas);
           } else {
-            // Jika tidak ada di tabel kelas, ambil dari matakuliah
-            const { data: mkData } = await supabase
-              .from("matakuliah")
-              .select(`*, profiles:dosen_id (username)`)
-              .in("id", mkIds);
-
-            if (mkData && mkData.length > 0) {
-              const virtualKelas: Kelas[] = mkData.map((mk, index) => ({
-                id: `mk-${mk.id}`,
-                matakuliah_id: mk.id,
-                dosen_id: mk.dosen_id,
-                semester: mk.semester?.toString() || "1",
-                hari: HARI_ORDER[index % 5],
-                jam: "08:00 - 10:00",
-                ruangan: "TBA",
-                matakuliah: mk,
-                profiles: mk.profiles || { username: "-" },
-              }));
-              setKelasList(virtualKelas);
-            } else {
-              setKelasList([]);
-            }
+            setKelasList([]);
           }
         } else {
           setKelasList([]);
