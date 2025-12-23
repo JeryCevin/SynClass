@@ -283,13 +283,16 @@ export default function SettingsPage() {
   // Add user modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [newUsername, setNewUsername] = useState("");
   const [newRole, setNewRole] = useState("student");
   const [newNim, setNewNim] = useState("");
+  const [newAngkatan, setNewAngkatan] = useState("");
   const [newProgramStudi, setNewProgramStudi] = useState("");
   const [newFakultas, setNewFakultas] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   // Edit user state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editId, setEditId] = useState<any>(null);
@@ -310,49 +313,69 @@ export default function SettingsPage() {
   const handleCreateUser = async () => {
     setCreatingUser(true);
     setCreateError(null);
+    setCreateSuccess(null);
+
+    // Validate required fields
+    if (!newEmail.trim()) {
+      setCreateError("Email wajib diisi");
+      setCreatingUser(false);
+      return;
+    }
+    if (!newPassword.trim() || newPassword.length < 6) {
+      setCreateError("Password wajib diisi (minimal 6 karakter)");
+      setCreatingUser(false);
+      return;
+    }
+
     try {
-      const payload: any = {
-        role: newRole,
-      };
-      if (newEmail.trim()) payload.email = newEmail.trim();
-      if (newUsername.trim()) payload.username = newUsername.trim();
-      if (newProgramStudi.trim()) payload.jurusan = newProgramStudi.trim();
-      if (newFakultas.trim()) payload.fakultas = newFakultas.trim();
-      if (newNim.trim()) {
-        const idKey =
-          newRole === "dosen" || newRole === "kaprodi" ? "nidn" : "nomor_induk";
-        payload[idKey] = newNim.trim();
+      const response = await fetch("/api/admin/create-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: newEmail.trim(),
+          password: newPassword,
+          username: newUsername.trim() || undefined,
+          role: newRole,
+          nim: newRole === "student" ? newNim.trim() || undefined : undefined,
+          nidn: newRole !== "student" ? newNim.trim() || undefined : undefined,
+          jurusan: newProgramStudi.trim() || undefined,
+          fakultas: newFakultas.trim() || undefined,
+          angkatan: newAngkatan.trim() || undefined,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setCreateError(result.error || "Gagal membuat user");
+        return;
       }
 
-      const table = profilesTableName ?? "profiles";
-      const res = await supabase.from(table).insert([payload]).select("*");
-      if (res.error) {
-        const err = res.error as any;
-        console.error(`Gagal membuat user di '${table}':`, {
-          status: (res as any).status,
-          statusText: (res as any).statusText,
-          errorMessage: err?.message,
-          error: err,
-          data: res.data,
-        });
-        const msg =
-          err?.message ?? JSON.stringify(err) ?? "Gagal membuat user.";
-        setCreateError(msg);
-      } else {
+      // Success
+      setCreateSuccess(`User ${result.user?.email} berhasil dibuat!`);
+      setNewEmail("");
+      setNewPassword("");
+      setNewUsername("");
+      setNewRole("student");
+      setNewNim("");
+      setNewAngkatan("");
+      setNewProgramStudi("");
+      setNewFakultas("");
+      await fetchUsers();
+
+      // Close modal after 2 seconds
+      setTimeout(() => {
         setShowAddModal(false);
-        setNewEmail("");
-        setNewUsername("");
-        setNewRole("student");
-        setNewNim("");
-        setNewProgramStudi("");
-        setNewFakultas("");
-        setCreateError(null);
-        await fetchUsers();
-      }
+        setCreateSuccess(null);
+      }, 2000);
     } catch (err: any) {
       console.error("Unexpected error saat membuat user:", err);
-      const msg = err?.message ?? JSON.stringify(err);
-      setCreateError(msg);
+      setCreateError(
+        err?.message ??
+          "Terjadi kesalahan. Pastikan SUPABASE_SERVICE_ROLE_KEY sudah diset."
+      );
     } finally {
       setCreatingUser(false);
     }
@@ -378,19 +401,32 @@ export default function SettingsPage() {
     if (!editId) return;
     setEditingUser(true);
     try {
+      // Build payload matching the profiles table schema
       const payload: any = {
-        role: editRole,
+        role: editRole, // must be 'kaprodi', 'dosen', or 'student'
+        updated_at: new Date().toISOString(),
       };
-      if (editEmail.trim()) payload.email = editEmail.trim();
+
+      // username is in profiles table
       if (editUsername.trim()) payload.username = editUsername.trim();
+
+      // jurusan and fakultas are in profiles table
       if (editProgramStudi.trim()) payload.jurusan = editProgramStudi.trim();
       if (editFakultas.trim()) payload.fakultas = editFakultas.trim();
+
+      // Use correct field names from schema: nim (bigint) for students, nidn (text) for dosen/kaprodi
       if (editNim.trim()) {
-        const idKey =
-          editRole === "dosen" || editRole === "kaprodi"
-            ? "nidn"
-            : "nomor_induk";
-        payload[idKey] = editNim.trim();
+        if (editRole === "dosen" || editRole === "kaprodi") {
+          payload.nidn = editNim.trim();
+          payload.nim = null; // clear nim if switching to dosen/kaprodi
+        } else {
+          // nim is bigint, so parse it
+          const nimValue = parseInt(editNim.trim());
+          if (!isNaN(nimValue)) {
+            payload.nim = nimValue;
+          }
+          payload.nidn = null; // clear nidn if switching to student
+        }
       }
 
       const table = profilesTableName ?? "profiles";
@@ -441,25 +477,13 @@ export default function SettingsPage() {
     }
   };
 
-  // Filter users berdasarkan role
+  // Filter users berdasarkan role (sesuai CHECK constraint: 'kaprodi', 'dosen', 'student')
   const getStudents = () =>
-    users.filter(
-      (u) =>
-        (u.role ?? u.user_role)?.toLowerCase() === "student" ||
-        (u.role ?? u.user_role)?.toLowerCase() === "mahasiswa"
-    );
+    users.filter((u) => (u.role ?? u.user_role)?.toLowerCase() === "student");
   const getDosen = () =>
-    users.filter(
-      (u) =>
-        (u.role ?? u.user_role)?.toLowerCase() === "dosen" ||
-        (u.role ?? u.user_role)?.toLowerCase() === "lecturer"
-    );
+    users.filter((u) => (u.role ?? u.user_role)?.toLowerCase() === "dosen");
   const getKaprodi = () =>
-    users.filter(
-      (u) =>
-        (u.role ?? u.user_role)?.toLowerCase() === "kaprodi" ||
-        (u.role ?? u.user_role)?.toLowerCase() === "admin"
-    );
+    users.filter((u) => (u.role ?? u.user_role)?.toLowerCase() === "kaprodi");
 
   // Role badge styling
   const getRoleBadge = (role: string) => {
@@ -507,45 +531,24 @@ export default function SettingsPage() {
 
   const resolveNim = (u: any) => {
     if (!u) return "-";
-    // prefer NIM for students, but if user role is dosen/kaprodi prefer NIDN
-    const role = (u.role ?? u.user_role ?? "").toString().toLowerCase();
-    const nidnCandidates = ["nidn", "nidn_number", "nomor_dosen", "nidn_id"];
-    const nimCandidates = ["nomor_induk", "nim", "nim_user", "student_id"];
-    if (
-      role === "dosen" ||
-      role === "kaprodi" ||
-      role === "lecturer" ||
-      role === "admin"
-    ) {
-      for (const k of nidnCandidates) if (u[k]) return u[k];
-      for (const k of nimCandidates) if (u[k]) return u[k];
+    // Schema: nim (bigint) for students, nidn (text) for dosen/kaprodi
+    const role = (u.role ?? "").toString().toLowerCase();
+    if (role === "dosen" || role === "kaprodi") {
+      return u.nidn || "-";
     }
-    for (const k of nimCandidates) if (u[k]) return u[k];
-    for (const k of nidnCandidates) if (u[k]) return u[k];
-    return "-";
+    // For students, nim is bigint
+    return u.nim ? u.nim.toString() : "-";
   };
 
   // Resolve identifier (nim for students, nidn for dosen/kaprodi) from a user object.
   const resolveIdForRole = (u: any, roleOverride?: string) => {
     if (!u) return "";
-    const role = (roleOverride ?? u.role ?? u.user_role ?? "")
-      .toString()
-      .toLowerCase();
-    const nidnCandidates = ["nidn", "nidn_number", "nomor_dosen", "nidn_id"];
-    const nimCandidates = ["nomor_induk", "nim", "nim_user", "student_id"];
-    if (
-      role === "dosen" ||
-      role === "kaprodi" ||
-      role === "lecturer" ||
-      role === "admin"
-    ) {
-      for (const k of nidnCandidates) if (u[k]) return u[k];
-      for (const k of nimCandidates) if (u[k]) return u[k];
-    } else {
-      for (const k of nimCandidates) if (u[k]) return u[k];
-      for (const k of nidnCandidates) if (u[k]) return u[k];
+    const role = (roleOverride ?? u.role ?? "").toString().toLowerCase();
+    if (role === "dosen" || role === "kaprodi") {
+      return u.nidn || "";
     }
-    return "";
+    // nim is bigint in schema
+    return u.nim ? u.nim.toString() : "";
   };
 
   const resolveFakultas = (u: any) => {
@@ -850,38 +853,95 @@ export default function SettingsPage() {
       {/* Add User Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-6 mx-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Tambah Pengguna
+              Tambah Pengguna Baru
             </h3>
             <div className="grid grid-cols-1 gap-3">
               {createError && (
-                <div className="text-sm text-red-600 p-2 rounded-lg bg-red-50">
-                  {createError}
+                <div className="text-sm text-red-600 p-3 rounded-lg bg-red-50 border border-red-200">
+                  ⚠️ {createError}
                 </div>
               )}
-              <input
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
-              />
+              {createSuccess && (
+                <div className="text-sm text-green-600 p-3 rounded-lg bg-green-50 border border-green-200">
+                  ✅ {createSuccess}
+                </div>
+              )}
+
+              {/* Required Fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="contoh@email.com"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimal 6 karakter"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Role <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
+                >
+                  <option value="student">Mahasiswa</option>
+                  <option value="dosen">Dosen</option>
+                  <option value="kaprodi">Kaprodi</option>
+                </select>
+              </div>
+
+              {/* Optional Fields */}
+              <div className="border-t border-gray-200 pt-3 mt-2">
+                <p className="text-sm text-gray-500 mb-3">
+                  Data Tambahan (Opsional)
+                </p>
+              </div>
+
               <input
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
-                placeholder="Username (opsional)"
+                placeholder="Username"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
               <input
                 value={newNim}
                 onChange={(e) => setNewNim(e.target.value)}
-                placeholder="Nomor Induk / NIM / NIDN (opsional)"
+                placeholder={newRole === "student" ? "NIM" : "NIDN"}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
+              {newRole === "student" && (
+                <input
+                  value={newAngkatan}
+                  onChange={(e) => setNewAngkatan(e.target.value)}
+                  placeholder="Angkatan (contoh: 2023)"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
+                />
+              )}
               <input
                 value={newProgramStudi}
                 onChange={(e) => setNewProgramStudi(e.target.value)}
-                placeholder="Program Studi (jurusan)"
+                placeholder="Program Studi / Jurusan"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
               <input
@@ -890,19 +950,14 @@ export default function SettingsPage() {
                 placeholder="Fakultas"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               />
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
-              >
-                <option value="student">Mahasiswa</option>
-                <option value="dosen">Dosen</option>
-                <option value="kaprodi">Kaprodi / Admin</option>
-              </select>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false);
+                  setCreateError(null);
+                  setCreateSuccess(null);
+                }}
                 className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 Batal
@@ -910,9 +965,16 @@ export default function SettingsPage() {
               <button
                 onClick={handleCreateUser}
                 disabled={creatingUser}
-                className="px-4 py-2 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl hover:from-[#5c1529] hover:to-[#7a1d38] disabled:opacity-60 transition-all"
+                className="px-4 py-2 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl hover:from-[#5c1529] hover:to-[#7a1d38] disabled:opacity-60 transition-all flex items-center gap-2"
               >
-                {creatingUser ? "Membuat..." : "Buat Pengguna"}
+                {creatingUser ? (
+                  <>
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    Membuat...
+                  </>
+                ) : (
+                  "Buat Pengguna"
+                )}
               </button>
             </div>
           </div>
@@ -962,10 +1024,13 @@ export default function SettingsPage() {
                 onChange={(e) => setEditRole(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#7a1d38] focus:border-transparent transition-all"
               >
-                <option value="student">Mahasiswa</option>
+                <option value="student">Mahasiswa (student)</option>
                 <option value="dosen">Dosen</option>
-                <option value="kaprodi">Kaprodi / Admin</option>
+                <option value="kaprodi">Kaprodi</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Role harus sesuai constraint: student, dosen, atau kaprodi
+              </p>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button
