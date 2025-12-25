@@ -153,6 +153,40 @@ export default function KelasDetailPage() {
     jawaban_link: "",
   });
 
+  // ==================== HELPER FUNCTIONS ====================
+  // Tentukan apakah presensi session harus aktif berdasarkan waktu
+  const isSessionActive = (session: PresensiSession): boolean => {
+    const now = new Date();
+    const sessionDate = new Date(session.tanggal);
+    const [startHour, startMin] = session.waktu_mulai.split(":").map(Number);
+    const [endHour, endMin] = session.waktu_selesai.split(":").map(Number);
+
+    // Set waktu mulai dan 15 menit setelahnya
+    const startTime = new Date(sessionDate);
+    startTime.setHours(startHour, startMin, 0, 0);
+
+    const autoCloseTime = new Date(startTime);
+    autoCloseTime.setMinutes(autoCloseTime.getMinutes() + 15);
+
+    // Presensi aktif jika waktu sekarang berada dalam range start time + 15 menit
+    return now >= startTime && now <= autoCloseTime;
+  };
+
+  // Tentukan apakah presensi session sudah berakhir
+  const isSessionClosed = (session: PresensiSession): boolean => {
+    const now = new Date();
+    const sessionDate = new Date(session.tanggal);
+    const [startHour, startMin] = session.waktu_mulai.split(":").map(Number);
+
+    const startTime = new Date(sessionDate);
+    startTime.setHours(startHour, startMin, 0, 0);
+
+    const autoCloseTime = new Date(startTime);
+    autoCloseTime.setMinutes(autoCloseTime.getMinutes() + 15);
+
+    return now > autoCloseTime;
+  };
+
   // ==================== INIT ====================
   useEffect(() => {
     const init = async () => {
@@ -174,6 +208,29 @@ export default function KelasDetailPage() {
     };
     init();
   }, [matakuliahId]);
+
+  // Monitor status presensi setiap detik
+  useEffect(() => {
+    if (presensiSessions.length === 0) return;
+
+    const interval = setInterval(() => {
+      setPresensiSessions((prevSessions) =>
+        prevSessions.map((session) => ({
+          ...session,
+          is_active: isSessionActive(session),
+        }))
+      );
+
+      // Update selected session jika ada
+      if (selectedSession) {
+        setSelectedSession((prev) =>
+          prev ? { ...prev, is_active: isSessionActive(prev) } : null
+        );
+      }
+    }, 1000); // Update setiap 1 detik
+
+    return () => clearInterval(interval);
+  }, [presensiSessions, selectedSession]);
 
   // ==================== FETCH FUNCTIONS ====================
   const fetchMatakuliah = async () => {
@@ -264,14 +321,6 @@ export default function KelasDetailPage() {
         waktu_selesai: "10:00",
       });
     }
-  };
-
-  const handleToggleSession = async (session: PresensiSession) => {
-    await supabase
-      .from("presensi_session")
-      .update({ is_active: !session.is_active })
-      .eq("id", session.id);
-    await fetchPresensiSessions();
   };
 
   const handleSelectSession = async (session: PresensiSession) => {
@@ -591,34 +640,59 @@ export default function KelasDetailPage() {
                       - {selectedSession.waktu_selesai}
                     </p>
                   </div>
-                  {role !== "mahasiswa" && (
-                    <button
-                      onClick={() => handleToggleSession(selectedSession)}
-                      className={`px-5 py-2.5 rounded-xl font-medium transition ${
-                        selectedSession.is_active
-                          ? "bg-red-100 text-red-700 hover:bg-red-200"
-                          : "bg-green-100 text-green-700 hover:bg-green-200"
-                      }`}
-                    >
-                      {selectedSession.is_active
-                        ? "🔒 Tutup Presensi"
-                        : "🔓 Buka Presensi"}
-                    </button>
-                  )}
+                  <div className="text-right">
+                    {isSessionActive(selectedSession) ? (
+                      <div className="bg-green-100 text-green-700 px-4 py-2 rounded-xl font-medium text-sm">
+                        🟢 Presensi Aktif
+                      </div>
+                    ) : isSessionClosed(selectedSession) ? (
+                      <div className="bg-red-100 text-red-700 px-4 py-2 rounded-xl font-medium text-sm">
+                        🔒 Presensi Ditutup
+                      </div>
+                    ) : (
+                      <div className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-xl font-medium text-sm">
+                        ⏳ Menunggu Waktu Mulai
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Mahasiswa: Pilih Status */}
                 {role === "mahasiswa" && (
                   <div>
-                    {!selectedSession.is_active ? (
-                      <div className="bg-gray-50 rounded-xl p-6 text-center">
-                        <span className="text-4xl block mb-2">🔒</span>
-                        <p className="text-gray-500">
-                          Presensi belum dibuka oleh dosen.
+                    {!isSessionActive(selectedSession) && !isSessionClosed(selectedSession) ? (
+                      <div className="bg-yellow-50 rounded-xl p-6 text-center border border-yellow-100">
+                        <span className="text-4xl block mb-2">⏳</span>
+                        <p className="text-yellow-700 font-medium">
+                          Presensi akan dibuka otomatis pada pukul {selectedSession.waktu_mulai}
                         </p>
+                        <p className="text-yellow-600 text-sm mt-2">
+                          Jangan lupa untuk presensi, karena akan ditutup setelah 15 menit dari awal dibuka.
+                        </p>
+                      </div>
+                    ) : isSessionClosed(selectedSession) ? (
+                      <div className="bg-red-50 rounded-xl p-6 text-center border border-red-100">
+                        <span className="text-4xl block mb-2">🔒</span>
+                        <p className="text-red-600 font-medium">
+                          Presensi sudah ditutup.
+                        </p>
+                        {myPresensi ? (
+                          <p className="text-red-500 text-sm mt-2">
+                            ✅ Anda sudah presensi: {myPresensi.status.toUpperCase()}
+                          </p>
+                        ) : (
+                          <p className="text-red-500 text-sm mt-2">
+                            Anda tidak presensi untuk pertemuan ini.
+                          </p>
+                        )}
                       </div>
                     ) : (
                       <div>
+                        <div className="bg-green-50 rounded-xl p-4 mb-4 border border-green-100">
+                          <p className="text-green-700 font-medium text-center">
+                            🟢 Presensi Aktif - Silakan pilih status kehadiran Anda
+                          </p>
+                        </div>
                         <p className="mb-4 text-gray-600 font-medium">
                           Pilih status kehadiran Anda:
                         </p>
