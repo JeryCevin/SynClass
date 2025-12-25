@@ -140,29 +140,84 @@ export default function DashboardPage() {
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    const userRole = localStorage.getItem("user_role");
-    const userEmail = localStorage.getItem("user_email");
-    const storedUserId = localStorage.getItem("user_id");
+    let isMounted = true;
 
-    if (!userRole) {
-      router.push("/login");
-      return;
-    }
+    const init = async () => {
+      let userRole = localStorage.getItem("user_role");
+      let userEmail = localStorage.getItem("user_email");
+      let storedUserId = localStorage.getItem("user_id");
 
-    setRole(userRole);
-    setUserId(storedUserId || "");
-    setUserName(userEmail?.split("@")[0] || "User");
+      console.log("🔐 Dashboard Init - Role:", userRole, "Email:", userEmail, "UID:", storedUserId);
 
-    // Fetch dashboard data
-    if (storedUserId && userRole === "student") {
-      fetchDashboardData(storedUserId);
-    } else if (storedUserId && userRole === "dosen") {
-      fetchDosenDashboardData(storedUserId);
-    } else if (storedUserId && userRole === "kaprodi") {
-      fetchKaprodiDashboardData(storedUserId);
-    } else {
-      setLoading(false);
-    }
+      // Fallback: ambil dari auth bila user_id belum tersimpan
+      if (!storedUserId) {
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData?.user?.id) {
+          storedUserId = authData.user.id;
+          localStorage.setItem("user_id", storedUserId);
+          console.log("✅ Retrieved user_id from auth:", storedUserId);
+          if (!userEmail) {
+            userEmail = authData.user.email || null;
+            if (userEmail) localStorage.setItem("user_email", userEmail);
+          }
+        }
+      }
+
+      // Ambil role dari tabel profiles jika belum ada atau untuk sinkronisasi
+      if (storedUserId && !userRole) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role, username")
+          .eq("id", storedUserId)
+          .single();
+        if (profile?.role) {
+          userRole = profile.role;
+          if (userRole) {
+            localStorage.setItem("user_role", userRole);
+          }
+          console.log("✅ Retrieved role from profiles:", userRole);
+        }
+        if (profile?.username && !userEmail) {
+          setUserName(profile.username);
+        }
+      }
+
+      if (!userRole || !storedUserId) {
+        console.log("❌ Missing role or user_id, redirecting to login");
+        router.push("/login");
+        return;
+      }
+
+      const normalizedRole = userRole.toLowerCase();
+      if (!isMounted) return;
+
+      setRole(normalizedRole);
+      setUserId(storedUserId);
+      setUserName(userEmail?.split("@")[0] || "User");
+
+      console.log("🔐 Normalized Role:", normalizedRole);
+
+      // Fetch dashboard data
+      if (normalizedRole === "student") {
+        console.log("📚 Loading Student Dashboard");
+        fetchDashboardData(storedUserId);
+      } else if (normalizedRole === "dosen") {
+        console.log("👨‍🏫 Loading Dosen Dashboard");
+        fetchDosenDashboardData(storedUserId);
+      } else if (normalizedRole === "kaprodi") {
+        console.log("🏫 Loading Kaprodi Dashboard");
+        fetchKaprodiDashboardData(storedUserId);
+      } else {
+        console.log("❌ Unknown role:", normalizedRole);
+        setLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   const fetchDashboardData = async (uid: string) => {
@@ -300,7 +355,8 @@ export default function DashboardPage() {
           jam_selesai,
           ruangan,
           hari,
-          profiles:dosen_id (username)
+          dosen_id,
+          profiles!matakuliah_dosen_id_fkey (username)
         `
         )
         .eq("hari", today)
@@ -308,14 +364,14 @@ export default function DashboardPage() {
         .order("jam_mulai", { ascending: true });
 
       setKelasHariIni(
-        (data || []).map((mk) => ({
+        (data || []).map((mk: any) => ({
           id: mk.id.toString(),
           nama_mk: mk.nama_mk || "",
           kode_mk: mk.kode_mk || "",
           jam_mulai: mk.jam_mulai || "",
           jam_selesai: mk.jam_selesai || "",
           ruangan: mk.ruangan || "-",
-          dosen: (mk.profiles as any)?.username || "-",
+          dosen: mk.profiles?.username || "-",
         }))
       );
     } catch (error) {
@@ -495,10 +551,14 @@ export default function DashboardPage() {
   const fetchDosenStats = async (uid: string) => {
     try {
       // Get courses taught by this dosen
-      const { data: courses } = await supabase
+      const { data: courses, error: coursesError } = await supabase
         .from("matakuliah")
         .select("id")
         .eq("dosen_id", uid);
+
+      if (coursesError) {
+        console.error("Error fetching courses:", coursesError);
+      }
 
       const courseIds = courses?.map((c) => c.id) || [];
       const totalMK = courseIds.length;
@@ -510,10 +570,12 @@ export default function DashboardPage() {
 
       if (courseIds.length > 0) {
         // Get total enrolled students
-        const { data: enrollments } = await supabase
+        const { data: enrollments, error: enrollError } = await supabase
           .from("matakuliah_diambil")
           .select("mahasiswa_id")
           .in("matakuliah_id", courseIds);
+
+        if (enrollError) console.error("Error fetching enrollments:", enrollError);
 
         const uniqueStudents = new Set(
           enrollments?.map((e) => e.mahasiswa_id) || []
@@ -521,35 +583,40 @@ export default function DashboardPage() {
         totalMahasiswa = uniqueStudents.size;
 
         // Get total presensi sessions
-        const { data: sessions } = await supabase
+        const { data: sessions, error: sessionError } = await supabase
           .from("presensi_session")
           .select("id")
           .in("matakuliah_id", courseIds);
 
+        if (sessionError) console.error("Error fetching sessions:", sessionError);
         totalPresensiSession = sessions?.length || 0;
 
         // Get tugas stats
-        const { data: tugasList } = await supabase
+        const { data: tugasList, error: tugasError } = await supabase
           .from("post")
           .select("id")
           .eq("jenis", "tugas")
           .in("matakuliah_id", courseIds);
 
+        if (tugasError) console.error("Error fetching tugas:", tugasError);
         totalTugas = tugasList?.length || 0;
 
         if (tugasList && tugasList.length > 0) {
           const tugasIds = tugasList.map((t) => t.id);
 
           // Get submissions without nilai
-          const { data: ungraded } = await supabase
+          const { data: ungraded, error: ungradedError } = await supabase
             .from("tugas_submission")
             .select("id")
             .in("post_id", tugasIds)
             .is("nilai", null);
 
+          if (ungradedError) console.error("Error fetching ungraded:", ungradedError);
           tugasBelumDinilai = ungraded?.length || 0;
         }
       }
+
+      console.log("Dosen Stats:", { totalMK, totalMahasiswa, totalPresensiSession, totalTugas, tugasBelumDinilai });
 
       setDosenStats({
         totalMataKuliah: totalMK,
@@ -601,13 +668,13 @@ export default function DashboardPage() {
           .select("matakuliah_id")
           .in("matakuliah_id", courseIds);
 
-        const countMap: Record<string, number> = {};
+        const countMap: Record<number, number> = {};
         enrollments?.forEach((e) => {
           countMap[e.matakuliah_id] = (countMap[e.matakuliah_id] || 0) + 1;
         });
 
         setDosenKelasHariIni(
-          data.map((mk) => ({
+          data.map((mk: any) => ({
             id: mk.id.toString(),
             nama_mk: mk.nama_mk || "",
             kode_mk: mk.kode_mk || "",
@@ -638,7 +705,7 @@ export default function DashboardPage() {
           matakuliah:matakuliah_id (nama_mk)
         `
         )
-        .eq("author_id", uid)
+        .eq("created_by", uid)
         .order("created_at", { ascending: false })
         .limit(5);
 
@@ -750,6 +817,7 @@ export default function DashboardPage() {
 
   // ============ KAPRODI DASHBOARD FUNCTIONS ============
   const fetchKaprodiDashboardData = async (uid: string) => {
+    console.log("🔵 Fetching Kaprodi Dashboard Data for UID:", uid);
     setLoading(true);
     try {
       await Promise.all([
@@ -766,33 +834,59 @@ export default function DashboardPage() {
 
   const fetchKaprodiStats = async () => {
     try {
-      // Get total mahasiswa
-      const { data: mahasiswa } = await supabase
+      console.log("📊 Fetching Kaprodi Stats...");
+
+      // Get total mahasiswa - try both "student" and "mahasiswa"
+      const { data: mahasiswaStudent, error: errorStudent } = await supabase
         .from("profiles")
-        .select("id")
+        .select("id, role")
         .eq("role", "student");
 
-      const totalMahasiswa = mahasiswa?.length || 0;
-
-      // Get total dosen
-      const { data: dosen } = await supabase
+      const { data: mahasiswaMahasiswa, error: errorMahasiswa } = await supabase
         .from("profiles")
-        .select("id")
+        .select("id, role")
+        .eq("role", "mahasiswa");
+
+      console.log("Student role query:", mahasiswaStudent, errorStudent);
+      console.log("Mahasiswa role query:", mahasiswaMahasiswa, errorMahasiswa);
+
+      const mahasiswa = [...(mahasiswaStudent || []), ...(mahasiswaMahasiswa || [])];
+      const totalMahasiswa = new Set(mahasiswa.map(m => m.id)).size;
+
+      // Get all profiles to see what roles exist
+      const { data: allProfiles } = await supabase
+        .from("profiles")
+        .select("id, role");
+      
+      console.log("📋 All profiles in database:", allProfiles);
+      console.log("Role distribution:", allProfiles?.reduce((acc: any, p) => {
+        acc[p.role] = (acc[p.role] || 0) + 1;
+        return acc;
+      }, {}));
+
+      // Get total dosen - try both formats
+      const { data: dosenData, error: dosenError } = await supabase
+        .from("profiles")
+        .select("id, role")
         .eq("role", "dosen");
 
-      const totalDosen = dosen?.length || 0;
+      console.log("Dosen query:", dosenData, dosenError);
+      const totalDosen = dosenData?.length || 0;
 
       // Get total matakuliah
-      const { data: matakuliah } = await supabase
+      const { data: matakuliah, error: mkError } = await supabase
         .from("matakuliah")
         .select("id");
 
+      console.log("Matakuliah query:", matakuliah?.length, mkError);
       const totalMataKuliah = matakuliah?.length || 0;
 
       // Get KRS stats
-      const { data: krsData } = await supabase
+      const { data: krsData, error: krsError } = await supabase
         .from("krs_pengajuan")
         .select("status");
+
+      console.log("KRS query:", krsData?.length, krsError);
 
       const krsPending =
         krsData?.filter((k) => k.status === "pending").length || 0;
@@ -800,6 +894,15 @@ export default function DashboardPage() {
         krsData?.filter((k) => k.status === "approved").length || 0;
       const krsRejected =
         krsData?.filter((k) => k.status === "rejected").length || 0;
+
+      console.log("✅ Kaprodi Stats Result:", {
+        totalMahasiswa,
+        totalDosen,
+        totalMataKuliah,
+        krsPending,
+        krsApproved,
+        krsRejected,
+      });
 
       setKaprodiStats({
         totalMahasiswa,
@@ -816,6 +919,7 @@ export default function DashboardPage() {
 
   const fetchKRSPendingList = async () => {
     try {
+      console.log("📋 Fetching KRS Pending List...");
       const { data } = await supabase
         .from("krs_pengajuan")
         .select(
@@ -829,6 +933,8 @@ export default function DashboardPage() {
         .eq("status", "pending")
         .order("created_at", { ascending: false })
         .limit(5);
+
+      console.log("KRS Pending List Data:", data);
 
       setKrsPendingList(
         (data || []).map((k) => ({
@@ -846,12 +952,14 @@ export default function DashboardPage() {
 
   const fetchRecentUsersKaprodi = async () => {
     try {
+      console.log("👥 Fetching Recent Users...");
       const { data } = await supabase
         .from("profiles")
         .select("id, username, role, created_at")
         .order("created_at", { ascending: false })
         .limit(5);
 
+      console.log("Recent Users Data:", data);
       setRecentUsers(data || []);
     } catch (error) {
       console.error("Error fetching recent users:", error);

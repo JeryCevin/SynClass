@@ -256,7 +256,7 @@ export default function KelasDetailPage() {
   const fetchPresensiList = async (sessionId: string) => {
     const { data } = await supabase
       .from("presensi")
-      .select(`*, profiles:mahasiswa_id (username, nim)`)
+      .select(`*, profiles!presensi_mahasiswa_id_fkey (username, nim)`)
       .eq("presensi_session_id", sessionId);
     if (data) setPresensiList(data);
   };
@@ -274,7 +274,7 @@ export default function KelasDetailPage() {
   const fetchPosts = async () => {
     const { data } = await supabase
       .from("post")
-      .select(`*, profiles:created_by (username)`)
+      .select(`*, profiles!post_created_by_fkey (username)`)
       .eq("matakuliah_id", matakuliahId)
       .order("pertemuan", { ascending: true })
       .order("created_at", { ascending: false });
@@ -284,7 +284,7 @@ export default function KelasDetailPage() {
   const fetchSubmissions = async (postId: string) => {
     const { data } = await supabase
       .from("tugas_submission")
-      .select(`*, profiles:mahasiswa_id (username, nim)`)
+      .select(`*, profiles!tugas_submission_mahasiswa_id_fkey (username, nim)`)
       .eq("post_id", postId)
       .order("submitted_at", { ascending: true });
     if (data) setSubmissions(data);

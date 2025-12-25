@@ -43,8 +43,14 @@ export default function LoginPage() {
         role = "dosen";
       }
 
+      // Store user data in localStorage
+      if (data?.user?.id) {
+        localStorage.setItem("user_id", data.user.id);
+        console.log("✅ User ID stored:", data.user.id);
+      }
       localStorage.setItem("user_role", role);
       localStorage.setItem("user_email", email);
+      console.log("✅ Login successful - Role:", role, "Email:", email);
 
       router.push("/");
       router.refresh();
