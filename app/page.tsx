@@ -4,6 +4,17 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "../utils/supabase/client";
+import { 
+  DashboardStatCard, 
+  BookIcon, 
+  UsersIcon, 
+  ClipboardCheckIcon, 
+  DocumentTextIcon,
+  AcademicCapIcon,
+  ChartBarIcon,
+  StarIcon,
+  CalendarIcon
+} from "../components/DashboardStatCard";
 import "./globals.css";
 
 interface DashboardStats {
@@ -147,15 +158,12 @@ export default function DashboardPage() {
       let userEmail = localStorage.getItem("user_email");
       let storedUserId = localStorage.getItem("user_id");
 
-      console.log("🔐 Dashboard Init - Role:", userRole, "Email:", userEmail, "UID:", storedUserId);
-
       // Fallback: ambil dari auth bila user_id belum tersimpan
       if (!storedUserId) {
         const { data: authData } = await supabase.auth.getUser();
         if (authData?.user?.id) {
           storedUserId = authData.user.id;
           localStorage.setItem("user_id", storedUserId);
-          console.log("✅ Retrieved user_id from auth:", storedUserId);
           if (!userEmail) {
             userEmail = authData.user.email || null;
             if (userEmail) localStorage.setItem("user_email", userEmail);
@@ -175,7 +183,6 @@ export default function DashboardPage() {
           if (userRole) {
             localStorage.setItem("user_role", userRole);
           }
-          console.log("✅ Retrieved role from profiles:", userRole);
         }
         if (profile?.username && !userEmail) {
           setUserName(profile.username);
@@ -183,7 +190,6 @@ export default function DashboardPage() {
       }
 
       if (!userRole || !storedUserId) {
-        console.log("❌ Missing role or user_id, redirecting to login");
         router.push("/login");
         return;
       }
@@ -195,20 +201,14 @@ export default function DashboardPage() {
       setUserId(storedUserId);
       setUserName(userEmail?.split("@")[0] || "User");
 
-      console.log("🔐 Normalized Role:", normalizedRole);
-
       // Fetch dashboard data
       if (normalizedRole === "student") {
-        console.log("📚 Loading Student Dashboard");
         fetchDashboardData(storedUserId);
       } else if (normalizedRole === "dosen") {
-        console.log("👨‍🏫 Loading Dosen Dashboard");
         fetchDosenDashboardData(storedUserId);
       } else if (normalizedRole === "kaprodi") {
-        console.log("🏫 Loading Kaprodi Dashboard");
         fetchKaprodiDashboardData(storedUserId);
       } else {
-        console.log("❌ Unknown role:", normalizedRole);
         setLoading(false);
       }
     };
@@ -616,8 +616,6 @@ export default function DashboardPage() {
         }
       }
 
-      console.log("Dosen Stats:", { totalMK, totalMahasiswa, totalPresensiSession, totalTugas, tugasBelumDinilai });
-
       setDosenStats({
         totalMataKuliah: totalMK,
         totalMahasiswa,
@@ -817,7 +815,6 @@ export default function DashboardPage() {
 
   // ============ KAPRODI DASHBOARD FUNCTIONS ============
   const fetchKaprodiDashboardData = async (uid: string) => {
-    console.log("🔵 Fetching Kaprodi Dashboard Data for UID:", uid);
     setLoading(true);
     try {
       await Promise.all([
@@ -834,8 +831,6 @@ export default function DashboardPage() {
 
   const fetchKaprodiStats = async () => {
     try {
-      console.log("📊 Fetching Kaprodi Stats...");
-
       // Get total mahasiswa - try both "student" and "mahasiswa"
       const { data: mahasiswaStudent, error: errorStudent } = await supabase
         .from("profiles")
@@ -847,30 +842,15 @@ export default function DashboardPage() {
         .select("id, role")
         .eq("role", "mahasiswa");
 
-      console.log("Student role query:", mahasiswaStudent, errorStudent);
-      console.log("Mahasiswa role query:", mahasiswaMahasiswa, errorMahasiswa);
-
       const mahasiswa = [...(mahasiswaStudent || []), ...(mahasiswaMahasiswa || [])];
       const totalMahasiswa = new Set(mahasiswa.map(m => m.id)).size;
 
-      // Get all profiles to see what roles exist
-      const { data: allProfiles } = await supabase
-        .from("profiles")
-        .select("id, role");
-      
-      console.log("📋 All profiles in database:", allProfiles);
-      console.log("Role distribution:", allProfiles?.reduce((acc: any, p) => {
-        acc[p.role] = (acc[p.role] || 0) + 1;
-        return acc;
-      }, {}));
-
-      // Get total dosen - try both formats
+      // Get total dosen
       const { data: dosenData, error: dosenError } = await supabase
         .from("profiles")
         .select("id, role")
         .eq("role", "dosen");
 
-      console.log("Dosen query:", dosenData, dosenError);
       const totalDosen = dosenData?.length || 0;
 
       // Get total matakuliah
@@ -878,7 +858,6 @@ export default function DashboardPage() {
         .from("matakuliah")
         .select("id");
 
-      console.log("Matakuliah query:", matakuliah?.length, mkError);
       const totalMataKuliah = matakuliah?.length || 0;
 
       // Get KRS stats
@@ -886,23 +865,12 @@ export default function DashboardPage() {
         .from("krs_pengajuan")
         .select("status");
 
-      console.log("KRS query:", krsData?.length, krsError);
-
       const krsPending =
         krsData?.filter((k) => k.status === "pending").length || 0;
       const krsApproved =
         krsData?.filter((k) => k.status === "approved").length || 0;
       const krsRejected =
         krsData?.filter((k) => k.status === "rejected").length || 0;
-
-      console.log("✅ Kaprodi Stats Result:", {
-        totalMahasiswa,
-        totalDosen,
-        totalMataKuliah,
-        krsPending,
-        krsApproved,
-        krsRejected,
-      });
 
       setKaprodiStats({
         totalMahasiswa,
@@ -919,7 +887,6 @@ export default function DashboardPage() {
 
   const fetchKRSPendingList = async () => {
     try {
-      console.log("📋 Fetching KRS Pending List...");
       const { data } = await supabase
         .from("krs_pengajuan")
         .select(
@@ -933,8 +900,6 @@ export default function DashboardPage() {
         .eq("status", "pending")
         .order("created_at", { ascending: false })
         .limit(5);
-
-      console.log("KRS Pending List Data:", data);
 
       setKrsPendingList(
         (data || []).map((k) => ({
@@ -952,14 +917,17 @@ export default function DashboardPage() {
 
   const fetchRecentUsersKaprodi = async () => {
     try {
-      console.log("👥 Fetching Recent Users...");
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("id, username, role, created_at")
         .order("created_at", { ascending: false })
         .limit(5);
 
-      console.log("Recent Users Data:", data);
+      if (error) {
+        console.error("Error fetching recent users:", error);
+        return;
+      }
+
       setRecentUsers(data || []);
     } catch (error) {
       console.error("Error fetching recent users:", error);
@@ -1093,40 +1061,40 @@ export default function DashboardPage() {
   // ============ DOSEN DASHBOARD ============
   if (role === "dosen") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-4 md:p-8">
         {/* Header Section */}
-        <header className="mb-10">
+        <header className="mb-6 md:mb-10">
           <div className="flex flex-col md:flex-row justify-between items-start gap-4">
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white text-xl">👨‍🏫</span>
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg">
+                  <AcademicCapIcon className="w-6 h-6 md:w-7 md:h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">Selamat datang,</p>
-                  <h1 className="text-2xl font-bold text-gray-900 capitalize">
+                  <p className="text-gray-500 text-xs md:text-sm">Selamat datang,</p>
+                  <h1 className="text-xl md:text-2xl font-bold text-gray-900 capitalize">
                     {userName}
                   </h1>
                 </div>
               </div>
               <div className="mt-2">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#fdf2f4] text-[#7a1d38] border border-[#f9d0d9]">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs md:text-sm font-medium bg-[#fdf2f4] text-[#7a1d38] border border-[#f9d0d9]">
                   Dosen
                 </span>
               </div>
             </div>
-            <div className="text-right bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400 uppercase tracking-wide">
+            <div className="w-full md:w-auto text-left md:text-right bg-white px-4 md:px-5 py-3 rounded-2xl shadow-sm border border-gray-100">
+              <p className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wide">
                 Hari ini
               </p>
-              <p className="text-xl font-semibold text-gray-800">
+              <p className="text-base md:text-xl font-semibold text-gray-800">
                 {new Date().toLocaleDateString("id-ID", {
                   weekday: "long",
                   day: "2-digit",
                   month: "long",
                 })}
               </p>
-              <p className="text-sm text-[#7a1d38] font-medium mt-1">
+              <p className="text-xs md:text-sm text-[#7a1d38] font-medium mt-1">
                 Semester Ganjil 2024/2025
               </p>
             </div>
@@ -1134,96 +1102,43 @@ export default function DashboardPage() {
         </header>
 
         {/* Main Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {/* Total Mata Kuliah */}
-          <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">
-                  Mata Kuliah Diampu
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {dosenStats.totalMataKuliah}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">📚</span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-4">
-              Mata kuliah semester ini
-            </p>
-          </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-10">
+          <DashboardStatCard
+            title="Mata Kuliah Diampu"
+            value={dosenStats.totalMataKuliah}
+            subtitle="Mata kuliah semester ini"
+            icon={<BookIcon className="w-5 h-5 md:w-6 md:h-6 text-[#7a1d38]" />}
+          />
 
-          {/* Total Mahasiswa */}
-          <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">
-                  Total Mahasiswa
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {dosenStats.totalMahasiswa}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">👥</span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-4">
-              Mahasiswa terdaftar di kelas Anda
-            </p>
-          </div>
+          <DashboardStatCard
+            title="Total Mahasiswa"
+            value={dosenStats.totalMahasiswa}
+            subtitle="Mahasiswa terdaftar di kelas Anda"
+            icon={<UsersIcon className="w-5 h-5 md:w-6 md:h-6 text-[#7a1d38]" />}
+          />
 
-          {/* Presensi Sessions */}
-          <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">
-                  Sesi Presensi
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {dosenStats.totalPresensiSession}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">✅</span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-4">
-              Presensi yang telah dibuat
-            </p>
-          </div>
+          <DashboardStatCard
+            title="Sesi Presensi"
+            value={dosenStats.totalPresensiSession}
+            subtitle="Presensi yang telah dibuat"
+            icon={<ClipboardCheckIcon className="w-5 h-5 md:w-6 md:h-6 text-[#7a1d38]" />}
+          />
 
-          {/* Tugas */}
-          <div className="bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 group text-white">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-white/70 text-xs font-medium uppercase tracking-wide">
-                  Tugas
-                </p>
-                <p className="text-3xl font-bold text-white mt-2">
-                  {dosenStats.totalTugas}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">📝</span>
-              </div>
-            </div>
-            <p className="text-xs text-white/80 mt-4">
-              {dosenStats.tugasBelumDinilai > 0 ? (
-                <span>
-                  ⚠️ {dosenStats.tugasBelumDinilai} tugas belum dinilai
-                </span>
-              ) : (
-                <span>✓ Semua tugas sudah dinilai</span>
-              )}
-            </p>
-          </div>
+          <DashboardStatCard
+            title="Tugas"
+            value={dosenStats.totalTugas}
+            subtitle={
+              dosenStats.tugasBelumDinilai > 0
+                ? `${dosenStats.tugasBelumDinilai} tugas belum dinilai`
+                : "Semua tugas sudah dinilai"
+            }
+            icon={<DocumentTextIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />}
+            variant="primary"
+          />
         </div>
 
         {/* Secondary Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
           {/* Left Column - 2/3 width */}
           <div className="lg:col-span-2 space-y-6">
             {/* Jadwal Mengajar Hari Ini */}
@@ -1509,40 +1424,40 @@ export default function DashboardPage() {
   // ============ KAPRODI DASHBOARD ============
   if (role === "kaprodi") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-4 md:p-8">
         {/* Header Section */}
-        <header className="mb-10">
+        <header className="mb-6 md:mb-10">
           <div className="flex flex-col md:flex-row justify-between items-start gap-4">
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white text-xl">👔</span>
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg">
+                  <StarIcon className="w-6 h-6 md:w-7 md:h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">Selamat datang,</p>
-                  <h1 className="text-2xl font-bold text-gray-900 capitalize">
+                  <p className="text-gray-500 text-xs md:text-sm">Selamat datang,</p>
+                  <h1 className="text-xl md:text-2xl font-bold text-gray-900 capitalize">
                     {userName}
                   </h1>
                 </div>
               </div>
               <div className="mt-2">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#fdf2f4] text-[#7a1d38] border border-[#f9d0d9]">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs md:text-sm font-medium bg-[#fdf2f4] text-[#7a1d38] border border-[#f9d0d9]">
                   Ketua Program Studi
                 </span>
               </div>
             </div>
-            <div className="text-right bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400 uppercase tracking-wide">
+            <div className="w-full md:w-auto text-left md:text-right bg-white px-4 md:px-5 py-3 rounded-2xl shadow-sm border border-gray-100">
+              <p className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wide">
                 Hari ini
               </p>
-              <p className="text-xl font-semibold text-gray-800">
+              <p className="text-base md:text-xl font-semibold text-gray-800">
                 {new Date().toLocaleDateString("id-ID", {
                   weekday: "long",
                   day: "2-digit",
                   month: "long",
                 })}
               </p>
-              <p className="text-sm text-[#7a1d38] font-medium mt-1">
+              <p className="text-xs md:text-sm text-[#7a1d38] font-medium mt-1">
                 Semester Ganjil 2024/2025
               </p>
             </div>
@@ -1550,118 +1465,73 @@ export default function DashboardPage() {
         </header>
 
         {/* Main Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {/* Total Mahasiswa */}
-          <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">
-                  Total Mahasiswa
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {kaprodiStats.totalMahasiswa}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">👨‍🎓</span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-4">
-              Mahasiswa aktif terdaftar
-            </p>
-          </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-10">
+          <DashboardStatCard
+            title="Total Mahasiswa"
+            value={kaprodiStats.totalMahasiswa}
+            subtitle="Mahasiswa aktif terdaftar"
+            icon={<UsersIcon className="w-5 h-5 md:w-6 md:h-6 text-[#7a1d38]" />}
+          />
 
-          {/* Total Dosen */}
-          <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">
-                  Total Dosen
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {kaprodiStats.totalDosen}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">👨‍🏫</span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-4">Dosen pengajar</p>
-          </div>
+          <DashboardStatCard
+            title="Total Dosen"
+            value={kaprodiStats.totalDosen}
+            subtitle="Dosen pengajar"
+            icon={<AcademicCapIcon className="w-5 h-5 md:w-6 md:h-6 text-[#7a1d38]" />}
+          />
 
-          {/* Total Mata Kuliah */}
-          <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">
-                  Mata Kuliah
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {kaprodiStats.totalMataKuliah}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">📚</span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-4">Mata kuliah tersedia</p>
-          </div>
+          <DashboardStatCard
+            title="Mata Kuliah"
+            value={kaprodiStats.totalMataKuliah}
+            subtitle="Mata kuliah tersedia"
+            icon={<BookIcon className="w-5 h-5 md:w-6 md:h-6 text-[#7a1d38]" />}
+          />
 
-          {/* KRS Pending */}
-          <div className="bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 group text-white">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-white/70 text-xs font-medium uppercase tracking-wide">
-                  KRS Pending
-                </p>
-                <p className="text-3xl font-bold text-white mt-2">
-                  {kaprodiStats.krsPending}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">📋</span>
-              </div>
-            </div>
-            <p className="text-xs text-white/80 mt-4">
-              {kaprodiStats.krsPending > 0 ? (
-                <span>⚠️ Menunggu persetujuan</span>
-              ) : (
-                <span>✓ Semua KRS sudah diproses</span>
-              )}
-            </p>
-          </div>
+          <DashboardStatCard
+            title="KRS Pending"
+            value={kaprodiStats.krsPending}
+            subtitle={
+              kaprodiStats.krsPending > 0
+                ? "Menunggu persetujuan"
+                : "Semua KRS sudah diproses"
+            }
+            icon={<DocumentTextIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />}
+            variant="primary"
+          />
         </div>
 
         {/* KRS Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <span className="text-xl">✅</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-10">
+          <div className="bg-green-50 border border-green-200 rounded-xl p-3 md:p-4 flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <ClipboardCheckIcon className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-green-700">
+              <p className="text-xl md:text-2xl font-bold text-green-700">
                 {kaprodiStats.krsApproved}
               </p>
-              <p className="text-sm text-green-600">KRS Disetujui</p>
+              <p className="text-xs md:text-sm text-green-600">KRS Disetujui</p>
             </div>
           </div>
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-4">
-            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-              <span className="text-xl">⏳</span>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 md:p-4 flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+              <CalendarIcon className="w-5 h-5 md:w-6 md:h-6 text-amber-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-amber-700">
+              <p className="text-xl md:text-2xl font-bold text-amber-700">
                 {kaprodiStats.krsPending}
               </p>
-              <p className="text-sm text-amber-600">KRS Menunggu</p>
+              <p className="text-xs md:text-sm text-amber-600">KRS Menunggu</p>
             </div>
           </div>
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-              <span className="text-xl">❌</span>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 md:p-4 flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-red-100 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </div>
             <div>
-              <p className="text-2xl font-bold text-red-700">
+              <p className="text-xl md:text-2xl font-bold text-red-700">
                 {kaprodiStats.krsRejected}
               </p>
               <p className="text-sm text-red-600">KRS Ditolak</p>
@@ -1948,24 +1818,24 @@ export default function DashboardPage() {
 
   // ============ STUDENT DASHBOARD (Default) ============
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-4 md:p-8">
       {/* Header Section */}
-      <header className="mb-10">
+      <header className="mb-6 md:mb-10">
         <div className="flex flex-col md:flex-row justify-between items-start gap-4">
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white text-xl">👋</span>
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg">
+                <UsersIcon className="w-6 h-6 md:w-7 md:h-7 text-white" />
               </div>
               <div>
-                <p className="text-gray-500 text-sm">Selamat datang,</p>
-                <h1 className="text-2xl font-bold text-gray-900 capitalize">
+                <p className="text-gray-500 text-xs md:text-sm">Selamat datang,</p>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900 capitalize">
                   {userName}
                 </h1>
               </div>
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#fdf2f4] text-[#7a1d38] border border-[#f9d0d9]">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs md:text-sm font-medium bg-[#fdf2f4] text-[#7a1d38] border border-[#f9d0d9]">
                 Mahasiswa
               </span>
               <span
@@ -1977,18 +1847,18 @@ export default function DashboardPage() {
               </span>
             </div>
           </div>
-          <div className="text-right bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100">
-            <p className="text-xs text-gray-400 uppercase tracking-wide">
+          <div className="w-full md:w-auto text-left md:text-right bg-white px-4 md:px-5 py-3 rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wide">
               Hari ini
             </p>
-            <p className="text-xl font-semibold text-gray-800">
+            <p className="text-base md:text-xl font-semibold text-gray-800">
               {new Date().toLocaleDateString("id-ID", {
                 weekday: "long",
                 day: "2-digit",
                 month: "long",
               })}
             </p>
-            <p className="text-sm text-[#7a1d38] font-medium mt-1">
+            <p className="text-xs md:text-sm text-[#7a1d38] font-medium mt-1">
               Semester Ganjil 2024/2025
             </p>
           </div>
@@ -1996,119 +1866,108 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {/* Total SKS */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-10">
+        {/* Total SKS Card */}
+        <div className="bg-white rounded-2xl shadow-sm p-4 md:p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20 hover:scale-[1.02]">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-3">
+            <div className="w-full">
+              <p className="text-gray-500 text-[10px] md:text-xs font-semibold uppercase tracking-wide mb-1 md:mb-2">
                 Total SKS
               </p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">
+              <p className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
                 {stats.totalSKS}
               </p>
+              <div className="mt-2 md:mt-4">
+                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                  <div
+                    className="bg-[#7a1d38] h-1.5 rounded-full transition-all"
+                    style={{
+                      width: `${Math.min((stats.totalSKS / 24) * 100, 100)}%`,
+                    }}
+                  ></div>
+                </div>
+                <p className="text-[10px] md:text-xs text-gray-500 mt-1">
+                  {stats.totalMataKuliah} Mata Kuliah
+                </p>
+              </div>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <span className="text-xl">📚</span>
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+              <BookIcon className="w-5 h-5 md:w-6 md:h-6 text-[#7a1d38]" />
             </div>
-          </div>
-          <div className="mt-4">
-            <div className="w-full bg-gray-100 rounded-full h-1.5">
-              <div
-                className="bg-[#7a1d38] h-1.5 rounded-full transition-all"
-                style={{
-                  width: `${Math.min((stats.totalSKS / 24) * 100, 100)}%`,
-                }}
-              ></div>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {stats.totalMataKuliah} Mata Kuliah
-            </p>
           </div>
         </div>
 
-        {/* Kehadiran */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">
+        {/* Kehadiran Card */}
+        <div className="bg-white rounded-2xl shadow-sm p-4 md:p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20 hover:scale-[1.02]">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-3">
+            <div className="w-full">
+              <p className="text-gray-500 text-[10px] md:text-xs font-semibold uppercase tracking-wide mb-1 md:mb-2">
                 Kehadiran
               </p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">
+              <p className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
                 {stats.persentaseKehadiran}%
               </p>
+              <div className="mt-2 md:mt-4">
+                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                  <div
+                    className={`h-1.5 rounded-full transition-all ${
+                      stats.persentaseKehadiran >= 80
+                        ? "bg-green-500"
+                        : stats.persentaseKehadiran >= 60
+                        ? "bg-amber-500"
+                        : "bg-red-500"
+                    }`}
+                    style={{ width: `${stats.persentaseKehadiran}%` }}
+                  ></div>
+                </div>
+                <p className="text-[10px] md:text-xs text-gray-500 mt-1">
+                  {stats.totalKehadiran} kehadiran tercatat
+                </p>
+              </div>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <span className="text-xl">✅</span>
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+              <ClipboardCheckIcon className="w-5 h-5 md:w-6 md:h-6 text-[#7a1d38]" />
             </div>
-          </div>
-          <div className="mt-4">
-            <div className="w-full bg-gray-100 rounded-full h-1.5">
-              <div
-                className={`h-1.5 rounded-full transition-all ${
-                  stats.persentaseKehadiran >= 80
-                    ? "bg-green-500"
-                    : stats.persentaseKehadiran >= 60
-                    ? "bg-amber-500"
-                    : "bg-red-500"
-                }`}
-                style={{ width: `${stats.persentaseKehadiran}%` }}
-              ></div>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {stats.totalKehadiran} kehadiran tercatat
-            </p>
           </div>
         </div>
 
-        {/* Tugas */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">
+        {/* Tugas Card */}
+        <div className="bg-white rounded-2xl shadow-sm p-4 md:p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 group hover:border-[#7a1d38]/20 hover:scale-[1.02]">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-3">
+            <div className="w-full">
+              <p className="text-gray-500 text-[10px] md:text-xs font-semibold uppercase tracking-wide mb-1 md:mb-2">
                 Tugas
               </p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">
+              <p className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
                 {stats.tugasSudahDikumpulkan}/
                 {stats.tugasSudahDikumpulkan + stats.tugasBelumDikumpulkan}
               </p>
+              <p className="text-[10px] md:text-xs mt-2 md:mt-4">
+                {stats.tugasBelumDikumpulkan > 0 ? (
+                  <span className="text-amber-600 font-medium">
+                    {stats.tugasBelumDikumpulkan} belum dikumpulkan
+                  </span>
+                ) : stats.tugasSudahDikumpulkan > 0 ? (
+                  <span className="text-green-600 font-medium">✓ Semua tugas selesai!</span>
+                ) : (
+                  <span className="text-gray-500">Tidak ada tugas</span>
+                )}
+              </p>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <span className="text-xl">📝</span>
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-[#fdf2f4] to-[#fce7ea] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+              <DocumentTextIcon className="w-5 h-5 md:w-6 md:h-6 text-[#7a1d38]" />
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-4">
-            {stats.tugasBelumDikumpulkan > 0 ? (
-              <span className="text-amber-600">
-                ⚠️ {stats.tugasBelumDikumpulkan} belum dikumpulkan
-              </span>
-            ) : stats.tugasSudahDikumpulkan > 0 ? (
-              <span className="text-green-600">✓ Semua tugas selesai!</span>
-            ) : (
-              <span>Tidak ada tugas</span>
-            )}
-          </p>
         </div>
 
-        {/* IPK */}
-        <div className="bg-gradient-to-br from-[#7a1d38] to-[#5c1529] rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 group text-white">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-white/70 text-xs font-medium uppercase tracking-wide">
-                IPK
-              </p>
-              <p className="text-3xl font-bold text-white mt-2">
-                {stats.ipk.toFixed(2)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <span className="text-xl">⭐</span>
-            </div>
-          </div>
-          <p className="text-xs text-white/80 mt-4">
-            Predikat: {getPredikat(stats.ipk)}
-          </p>
-        </div>
+        {/* IPK Card */}
+        <DashboardStatCard
+          title="IPK"
+          value={stats.ipk.toFixed(2)}
+          subtitle={`Predikat: ${getPredikat(stats.ipk)}`}
+          icon={<StarIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />}
+          variant="primary"
+        />
       </div>
 
       {/* Secondary Section */}
