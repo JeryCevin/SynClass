@@ -15,35 +15,30 @@ export async function GET(request: NextRequest) {
       return errorResponse(roleResult.error!, roleResult.code!, roleResult.status!);
     }
 
-    // Get enrolled classes (approved only)
+    // Get enrolled classes
     const { data: classes, error } = await supabase
       .from('matakuliah_diambil')
       .select(`
         id,
+        mahasiswa_id,
         matakuliah_id,
-        status,
+        semester,
+        nilai_huruf,
+        nilai_angka,
         matakuliah:matakuliah_id (
           id,
           kode_mk,
           nama_mk,
           sks,
-          semester
-        ),
-        kelas:kelas_id (
-          id,
-          nama_kelas,
+          semester,
+          dosen_id,
           hari,
           jam_mulai,
           jam_selesai,
-          ruangan,
-          dosen:user_id (
-            username,
-            full_name
-          )
+          ruangan
         )
       `)
-      .eq('user_id', tokenResult.userId!)
-      .eq('status', 'APPROVED')
+      .eq('mahasiswa_id', tokenResult.userId!)
       .order('created_at', { ascending: false });
 
     if (error) {

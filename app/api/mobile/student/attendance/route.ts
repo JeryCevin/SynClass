@@ -22,19 +22,20 @@ export async function GET(request: NextRequest) {
       .from('presensi')
       .select(`
         id,
-        user_id,
+        mahasiswa_id,
         presensi_session_id,
         status,
         waktu_presensi,
         presensi_session:presensi_session_id (
           id,
-          kelas_id,
+          matakuliah_id,
+          pertemuan,
           tanggal,
-          jam_mulai,
-          jam_selesai
+          waktu_mulai,
+          waktu_selesai
         )
       `)
-      .eq('user_id', tokenResult.userId!);
+      .eq('mahasiswa_id', tokenResult.userId!);
 
     if (kelas_id) {
       query = query.eq('presensi_session.kelas_id', kelas_id);
@@ -120,9 +121,9 @@ export async function POST(request: NextRequest) {
     const { data: attendance, error: insertError } = await supabase
       .from('presensi')
       .insert({
-        user_id: tokenResult.userId!,
+        mahasiswa_id: tokenResult.userId!,
         presensi_session_id,
-        status: 'HADIR',
+        status: 'hadir',
         waktu_presensi: now,
       })
       .select()

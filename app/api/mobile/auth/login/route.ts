@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     // Verify user adalah student
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, role, username, full_name, avatar_url')
+      .select('id, role, username, nim, jurusan, angkatan')
       .eq('id', data.user!.id)
       .single();
 
@@ -56,8 +56,9 @@ export async function POST(request: NextRequest) {
           id: data.user!.id,
           email: data.user!.email,
           username: profile.username,
-          full_name: profile.full_name,
-          avatar_url: profile.avatar_url,
+          nim: profile.nim,
+          jurusan: profile.jurusan,
+          angkatan: profile.angkatan,
           role: profile.role,
         },
         session: {

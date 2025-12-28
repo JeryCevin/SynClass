@@ -23,11 +23,12 @@ export async function GET(request: NextRequest) {
       .from('matakuliah_diambil')
       .select(`
         id,
-        user_id,
+        mahasiswa_id,
         matakuliah_id,
-        status,
+        semester,
+        nilai_huruf,
+        nilai_angka,
         created_at,
-        updated_at,
         matakuliah:matakuliah_id (
           id,
           kode_mk,
@@ -36,10 +37,10 @@ export async function GET(request: NextRequest) {
           semester
         )
       `)
-      .eq('user_id', tokenResult.userId!);
+      .eq('mahasiswa_id', tokenResult.userId!);
 
     if (status) {
-      query = query.eq('status', status.toUpperCase());
+      query = query.eq('nilai_huruf', status.toUpperCase());
     }
 
     const { data: krs, error } = await query.order('created_at', {
@@ -106,9 +107,9 @@ export async function POST(request: NextRequest) {
 
     // Insert KRS records
     const krsRecords = matakuliah_ids.map((mkId: string) => ({
-      user_id: tokenResult.userId!,
-      matakuliah_id: mkId,
-      status: 'PENDING',
+      mahasiswa_id: tokenResult.userId!,
+      matakuliah_id: parseInt(mkId),
+      semester: new Date().getFullYear().toString(),
       created_at: new Date(),
     }));
 

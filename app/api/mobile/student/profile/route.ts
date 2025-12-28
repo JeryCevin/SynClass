@@ -47,16 +47,16 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { full_name, phone, address, avatar_url } = body;
+    const { username, jurusan, angkatan, nidn } = body;
 
     // Update profile
     const { data: profile, error } = await supabase
       .from('profiles')
       .update({
-        full_name,
-        phone,
-        address,
-        avatar_url,
+        ...(username && { username }),
+        ...(jurusan && { jurusan }),
+        ...(angkatan && { angkatan }),
+        ...(nidn && { nidn }),
         updated_at: new Date(),
       })
       .eq('id', tokenResult.userId!)
