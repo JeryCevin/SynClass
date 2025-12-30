@@ -4,7 +4,7 @@ import { verifyToken, checkStudentRole, successResponse, errorResponse, supabase
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { matakuliahId: string } }
+  { params }: { params: Promise<{ matakuliahId: string }> }
 ) {
   try {
     // Verify token & role
@@ -18,14 +18,15 @@ export async function GET(
       return errorResponse(roleResult.error!, roleResult.code!, roleResult.status!);
     }
 
-    const matakuliahId = parseInt(params.matakuliahId);
+    const { matakuliahId } = await params;
+    const matakuliahIdNum = parseInt(matakuliahId);
 
     // Verify student is enrolled in this course
     const { data: enrollment, error: enrollmentError } = await supabase
       .from('matakuliah_diambil')
       .select('*')
       .eq('mahasiswa_id', tokenResult.userId!)
-      .eq('matakuliah_id', matakuliahId)
+      .eq('matakuliah_id', matakuliahIdNum)
       .single();
 
     if (enrollmentError || !enrollment) {
@@ -43,7 +44,7 @@ export async function GET(
           nidn
         )
       `)
-      .eq('id', matakuliahId)
+      .eq('id', matakuliahIdNum)
       .single();
 
     if (mkError || !matakuliah) {
@@ -61,7 +62,7 @@ export async function GET(
           nidn
         )
       `)
-      .eq('matakuliah_id', matakuliahId);
+      .eq('matakuliah_id', matakuliahIdNum);
 
     if (kelasError) {
       return errorResponse(kelasError.message, 'CLASS_FETCH_ERROR', 400);
@@ -80,7 +81,7 @@ export async function GET(
           nim
         )
       `)
-      .eq('matakuliah_id', matakuliahId);
+      .eq('matakuliah_id', matakuliahIdNum);
 
     if (studentError) {
       return errorResponse(studentError.message, 'STUDENT_FETCH_ERROR', 400);
@@ -90,7 +91,7 @@ export async function GET(
     const { data: materials, error: materialError } = await supabase
       .from('post')
       .select('id')
-      .eq('matakuliah_id', matakuliahId)
+      .eq('matakuliah_id', matakuliahIdNum)
       .eq('jenis', 'materi');
 
     if (materialError) {
@@ -101,7 +102,7 @@ export async function GET(
     const { data: assignments, error: assignmentError } = await supabase
       .from('post')
       .select('id')
-      .eq('matakuliah_id', matakuliahId)
+      .eq('matakuliah_id', matakuliahIdNum)
       .eq('jenis', 'tugas');
 
     if (assignmentError) {
