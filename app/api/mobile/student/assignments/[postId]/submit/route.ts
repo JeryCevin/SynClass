@@ -4,7 +4,7 @@ import { verifyToken, checkStudentRole, successResponse, errorResponse, supabase
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { postId: string } }
+  { params }: { params: Promise<{ postId: string }> }
 ) {
   try {
     // Verify token & role
@@ -18,11 +18,13 @@ export async function GET(
       return errorResponse(roleResult.error!, roleResult.code!, roleResult.status!);
     }
 
+    const { postId } = await params;
+
     // Get assignment details
     const { data: assignment, error: assignmentError } = await supabase
       .from('post')
       .select('*')
-      .eq('id', params.postId)
+      .eq('id', postId)
       .single();
 
     if (assignmentError || !assignment) {
@@ -45,7 +47,7 @@ export async function GET(
     const { data: submission, error: submissionError } = await supabase
       .from('tugas_submission')
       .select('*')
-      .eq('post_id', params.postId)
+      .eq('post_id', postId)
       .eq('mahasiswa_id', tokenResult.userId!)
       .single();
 
@@ -66,7 +68,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { postId: string } }
+  { params }: { params: Promise<{ postId: string }> }
 ) {
   try {
     // Verify token & role
@@ -80,6 +82,7 @@ export async function POST(
       return errorResponse(roleResult.error!, roleResult.code!, roleResult.status!);
     }
 
+    const { postId } = await params;
     const body = await request.json();
     const { jawaban_text, jawaban_link } = body;
 
@@ -95,7 +98,7 @@ export async function POST(
     const { data: assignment, error: assignmentError } = await supabase
       .from('post')
       .select('*')
-      .eq('id', params.postId)
+      .eq('id', postId)
       .single();
 
     if (assignmentError || !assignment) {
@@ -118,7 +121,7 @@ export async function POST(
     const { data: existingSubmission } = await supabase
       .from('tugas_submission')
       .select('*')
-      .eq('post_id', params.postId)
+      .eq('post_id', postId)
       .eq('mahasiswa_id', tokenResult.userId!)
       .single();
 
@@ -148,7 +151,7 @@ export async function POST(
       const { data: created, error: createError } = await supabase
         .from('tugas_submission')
         .insert({
-          post_id: params.postId,
+          post_id: postId,
           mahasiswa_id: tokenResult.userId!,
           jawaban_text,
           jawaban_link,
