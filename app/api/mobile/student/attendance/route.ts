@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const kelas_id = searchParams.get('kelas_id');
+    const matakuliah_id = searchParams.get('matakuliah_id');
 
     let query = supabase
       .from('presensi')
@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
       `)
       .eq('mahasiswa_id', tokenResult.userId!);
 
-    if (kelas_id) {
-      query = query.eq('presensi_session.kelas_id', kelas_id);
+    if (matakuliah_id) {
+      query = query.eq('presensi_session.matakuliah_id', parseInt(matakuliah_id));
     }
 
     const { data: attendance, error } = await query.order('waktu_presensi', {

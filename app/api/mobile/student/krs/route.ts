@@ -74,6 +74,8 @@ export async function POST(request: NextRequest) {
       return errorResponse(roleResult.error!, roleResult.code!, roleResult.status!);
     }
 
+    // NOTE: Mobile KRS submission directly enrolls student to matakuliah_diambil
+    // (bypasses krs_pengajuan approval flow which is only for web/kaprodi)
     const body = await request.json();
     const { matakuliah_ids } = body;
 
@@ -126,7 +128,7 @@ export async function POST(request: NextRequest) {
       {
         submitted: (inserted || []).length,
         total_sks: totalSks,
-        status: 'PENDING',
+        status: 'ENROLLED', // Direct enrollment, no approval needed
       },
       `KRS submitted successfully (${totalSks} SKS)`,
       201
