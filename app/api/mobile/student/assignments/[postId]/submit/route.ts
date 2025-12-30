@@ -1,6 +1,6 @@
 // app/api/mobile/student/assignments/[postId]/submit/route.ts - Submit Assignment
 import { NextRequest } from 'next/server';
-import { verifyToken, checkStudentRole, successResponse, errorResponse, supabase } from '../../../lib/auth';
+import { verifyToken, checkStudentRole, successResponse, errorResponse, supabase } from '../../../../lib/auth';
 
 export async function GET(
   request: NextRequest,
