@@ -1,0 +1,444 @@
+{
+  "info": {
+    "name": "SynClass Mobile API",
+    "description": "Student mobile API testing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "AUTH",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PROFILE",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/profile",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jurusan\": \"Teknik Informatika Updated\",\n  \"fakultas\": \"Fakultas Teknologi Informasi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/profile",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "profile"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "COURSES",
+      "item": [
+        {
+          "name": "Get All Available Courses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/matakuliah?semester=1",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "matakuliah"],
+              "query": [
+                {
+                  "key": "semester",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Classes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/classes",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "classes"]
+            }
+          }
+        },
+        {
+          "name": "Get Class Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/classes/1",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "classes", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "KRS (ENROLLMENT)",
+      "item": [
+        {
+          "name": "Get My KRS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/krs?semester=1",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "krs"],
+              "query": [
+                {
+                  "key": "semester",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Enroll in Course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"matakuliah_ids\": [1, 2, 3],\n  \"semester\": \"1\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/krs",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "krs"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MATERIALS",
+      "item": [
+        {
+          "name": "Get Materials",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/materials?matakuliah_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "materials"],
+              "query": [
+                {
+                  "key": "matakuliah_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ASSIGNMENTS",
+      "item": [
+        {
+          "name": "Get Assignments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/assignments?matakuliah_id=1&status=pending",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "assignments"],
+              "query": [
+                {
+                  "key": "matakuliah_id",
+                  "value": "1"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit Assignment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jawaban_text\": \"Ini adalah jawaban saya untuk tugas ini\",\n  \"jawaban_link\": \"https://github.com/user/repo\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/assignments/550e8400-e29b-41d4-a716-446655440000/submit",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "assignments", "550e8400-e29b-41d4-a716-446655440000", "submit"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "GRADES",
+      "item": [
+        {
+          "name": "Get My Grades",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/grades?semester=1",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "grades"],
+              "query": [
+                {
+                  "key": "semester",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ATTENDANCE",
+      "item": [
+        {
+          "name": "Get Attendance History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/attendance?matakuliah_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "attendance"],
+              "query": [
+                {
+                  "key": "matakuliah_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Available Attendance Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/presensi-sessions?show_past=false",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "presensi-sessions"],
+              "query": [
+                {
+                  "key": "show_past",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Checkin Attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kode_presensi\": \"ABC123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/student/attendance",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "student", "attendance"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "api_path",
+      "value": "/api/mobile"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    }
+  ]
+}
