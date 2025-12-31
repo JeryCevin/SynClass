@@ -82,17 +82,30 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { presensi_session_id, kode_presensi } = body;
+    const { presensi_session_id, status } = body;
 
-    if (!presensi_session_id || !kode_presensi) {
+    // Validate required fields
+    if (!presensi_session_id) {
       return errorResponse(
-        'presensi_session_id and kode_presensi are required',
+        'presensi_session_id is required',
         'MISSING_FIELDS',
         400
       );
     }
 
-    // Verify session exists and is active
+    // Validate status - must be one of: HADIR, SAKIT, IZIN, ALPHA
+    const validStatuses = ['HADIR', 'SAKIT', 'IZIN', 'ALPHA'];
+    const attendanceStatus = status?.toUpperCase() || 'HADIR';
+    
+    if (!validStatuses.includes(attendanceStatus)) {
+      return errorResponse(
+        'Invalid status. Must be: HADIR, SAKIT, IZIN, or ALPHA',
+        'INVALID_STATUS',
+        400
+      );
+    }
+
+    // Get session by ID
     const { data: session, error: sessionError } = await supabase
       .from('presensi_session')
       .select('*')
@@ -103,27 +116,44 @@ export async function POST(request: NextRequest) {
       return errorResponse('Attendance session not found', 'SESSION_NOT_FOUND', 404);
     }
 
-    // Check if session is still active (15 minute window)
+    // Check if session is active
+    if (!session.is_active) {
+      return errorResponse('Attendance session is not active', 'SESSION_INACTIVE', 403);
+    }
+
+    // Check if student is enrolled in the course
+    const { data: enrollment } = await supabase
+      .from('matakuliah_diambil')
+      .select('*')
+      .eq('mahasiswa_id', tokenResult.userId!)
+      .eq('matakuliah_id', session.matakuliah_id)
+      .single();
+
+    if (!enrollment) {
+      return errorResponse('Not enrolled in this course', 'ACCESS_DENIED', 403);
+    }
+
+    // Check if already attended this session
+    const { data: existingAttendance } = await supabase
+      .from('presensi')
+      .select('*')
+      .eq('mahasiswa_id', tokenResult.userId!)
+      .eq('presensi_session_id', session.id)
+      .single();
+
+    if (existingAttendance) {
+      return errorResponse('Already submitted attendance for this session', 'ALREADY_CHECKED_IN', 400);
+    }
+
     const now = new Date();
-    const sessionStart = new Date(session.jam_mulai);
-    const sessionEnd = new Date(sessionStart.getTime() + 15 * 60 * 1000);
-
-    if (now < sessionStart || now > sessionEnd) {
-      return errorResponse('Attendance window is closed', 'WINDOW_CLOSED', 403);
-    }
-
-    // Verify code
-    if (kode_presensi !== session.kode_presensi) {
-      return errorResponse('Invalid attendance code', 'INVALID_CODE', 403);
-    }
 
     // Insert attendance record
     const { data: attendance, error: insertError } = await supabase
       .from('presensi')
       .insert({
         mahasiswa_id: tokenResult.userId!,
-        presensi_session_id,
-        status: 'hadir',
+        presensi_session_id: session.id,
+        status: attendanceStatus,
         waktu_presensi: now,
       })
       .select()
@@ -133,7 +163,7 @@ export async function POST(request: NextRequest) {
       return errorResponse(insertError.message, 'INSERT_FAILED', 400);
     }
 
-    return successResponse(attendance, 'Attendance submitted successfully', 201);
+    return successResponse(attendance, `Attendance submitted as ${attendanceStatus}`, 201);
   } catch (err) {
     console.error('Submit attendance error:', err);
     return errorResponse('Failed to submit attendance', 'ATTENDANCE_SUBMIT_ERROR', 500);

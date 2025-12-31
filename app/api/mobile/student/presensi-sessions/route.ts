@@ -86,13 +86,29 @@ export async function GET(request: NextRequest) {
       has_attended: attendedSessionIds.includes(session.id),
       // Calculate if session is still active (15 minute window after start time)
       is_available_now: (() => {
-        const now = new Date();
-        const sessionDate = new Date(session.tanggal);
-        const [hours, minutes] = session.waktu_mulai.split(':');
-        sessionDate.setHours(parseInt(hours), parseInt(minutes), 0);
-        
-        const sessionEnd = new Date(sessionDate.getTime() + 15 * 60 * 1000); // 15 min window
-        return now >= sessionDate && now <= sessionEnd && session.is_active;
+        try {
+          const now = new Date();
+          // Handle tanggal format (e.g., "2025-01-15")
+          const sessionDate = new Date(session.tanggal);
+          
+          if (isNaN(sessionDate.getTime())) {
+            // If date parsing fails, check only is_active flag
+            return session.is_active === true;
+          }
+          
+          // Handle waktu_mulai format (e.g., "08:00:00" or "08:00")
+          if (session.waktu_mulai) {
+            const timeParts = session.waktu_mulai.split(':');
+            const hours = parseInt(timeParts[0]) || 0;
+            const minutes = parseInt(timeParts[1]) || 0;
+            sessionDate.setHours(hours, minutes, 0, 0);
+          }
+          
+          const sessionEnd = new Date(sessionDate.getTime() + 15 * 60 * 1000); // 15 min window
+          return now >= sessionDate && now <= sessionEnd && session.is_active === true;
+        } catch {
+          return session.is_active === true;
+        }
       })(),
     }));
 
