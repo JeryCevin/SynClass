@@ -116,8 +116,12 @@ export async function POST(request: NextRequest) {
       return errorResponse('Attendance session not found', 'SESSION_NOT_FOUND', 404);
     }
 
-    // Check if session is active
-    if (!session.is_active) {
+    // Check if session is active: is_active=true OR session date is today
+    const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    const sessionDate = session.tanggal; // Already in YYYY-MM-DD format
+    const isSessionActive = session.is_active === true || sessionDate === today;
+
+    if (!isSessionActive) {
       return errorResponse('Attendance session is not active', 'SESSION_INACTIVE', 403);
     }
 
