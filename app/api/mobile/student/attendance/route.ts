@@ -93,13 +93,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate status - must be one of: HADIR, SAKIT, IZIN, ALPHA
-    const validStatuses = ['HADIR', 'SAKIT', 'IZIN', 'ALPHA'];
-    const attendanceStatus = status?.toUpperCase() || 'HADIR';
+    // Validate status - must be one of: hadir, sakit, izin, alpha (lowercase for DB constraint)
+    const validStatuses = ['hadir', 'sakit', 'izin', 'alpha'];
+    const attendanceStatus = status?.toLowerCase() || 'hadir';
     
     if (!validStatuses.includes(attendanceStatus)) {
       return errorResponse(
-        'Invalid status. Must be: HADIR, SAKIT, IZIN, or ALPHA',
+        'Invalid status. Must be: hadir, sakit, izin, or alpha',
         'INVALID_STATUS',
         400
       );
