@@ -27,7 +27,100 @@
               "host": ["{{base_url}}"],
               "path": ["{{api_path}}", "auth", "login"]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.data.session) {",
+                  "        pm.environment.set('access_token', jsonData.data.session.access_token);",
+                  "        pm.environment.set('refresh_token', jsonData.data.session.refresh_token);",
+                  "        console.log('✅ Tokens saved to environment');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "auth", "refresh"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.data) {",
+                  "        pm.environment.set('access_token', jsonData.data.access_token);",
+                  "        pm.environment.set('refresh_token', jsonData.data.refresh_token);",
+                  "        console.log('✅ Tokens refreshed and saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}{{api_path}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_path}}", "auth", "logout"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.environment.unset('access_token');",
+                  "    pm.environment.unset('refresh_token');",
+                  "    console.log('✅ Tokens cleared from environment');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         }
       ]
     },
@@ -187,7 +280,7 @@
           }
         },
         {
-          "name": "Enroll in Course",
+          "name": "Enroll in Course (Submit KRS)",
           "request": {
             "method": "POST",
             "header": [
@@ -202,7 +295,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"matakuliah_ids\": [1, 2, 3],\n  \"semester\": \"1\"\n}"
+              "raw": "{\n  \"matakuliah_ids\": [1, 2, 3]\n}"
             },
             "url": {
               "raw": "{{base_url}}{{api_path}}/student/krs",
@@ -396,7 +489,7 @@
           }
         },
         {
-          "name": "Checkin Attendance",
+          "name": "Submit Attendance (Checkin)",
           "request": {
             "method": "POST",
             "header": [
@@ -411,7 +504,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"kode_presensi\": \"ABC123\"\n}"
+              "raw": "{\n  \"presensi_session_id\": 1,\n  \"status\": \"hadir\"\n}"
             },
             "url": {
               "raw": "{{base_url}}{{api_path}}/student/attendance",
