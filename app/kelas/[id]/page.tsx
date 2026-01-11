@@ -130,6 +130,8 @@ export default function KelasDetailPage() {
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [showPostForm, setShowPostForm] = useState(false);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<Post | null>(null);
 
   // Form data
   const [sessionForm, setSessionForm] = useState({
@@ -433,6 +435,41 @@ export default function KelasDetailPage() {
       })
       .eq("id", submissionId);
     if (selectedPost) await fetchSubmissions(selectedPost.id);
+  };
+
+  const handleDeletePost = async () => {
+    if (!postToDelete) return;
+
+    // Delete submissions first if it's a tugas
+    if (postToDelete.jenis === "tugas") {
+      await supabase
+        .from("tugas_submission")
+        .delete()
+        .eq("post_id", postToDelete.id);
+    }
+
+    // Delete the post
+    const { error } = await supabase
+      .from("post")
+      .delete()
+      .eq("id", postToDelete.id);
+
+    if (!error) {
+      await fetchPosts();
+      setShowDeleteConfirm(false);
+      setPostToDelete(null);
+      // Clear selected post if it was deleted
+      if (selectedPost?.id === postToDelete.id) {
+        setSelectedPost(null);
+      }
+    } else {
+      alert("Gagal menghapus post: " + error.message);
+    }
+  };
+
+  const confirmDeletePost = (post: Post) => {
+    setPostToDelete(post);
+    setShowDeleteConfirm(true);
   };
 
   // ==================== RENDER ====================
@@ -834,34 +871,59 @@ export default function KelasDetailPage() {
                 {posts.map((post) => (
                   <div
                     key={post.id}
-                    onClick={() => handleSelectPost(post)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all relative group ${
                       selectedPost?.id === post.id
                         ? "border-[#7a1d38] bg-[#fdf2f4] shadow-md"
                         : "border-gray-200 bg-white hover:border-[#7a1d38]/40 hover:shadow"
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-bold ${
-                          post.jenis === "tugas"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-[#fdf2f4] text-[#7a1d38]"
-                        }`}
-                      >
-                        {post.jenis === "tugas" ? "📝 Tugas" : "📖 Materi"}
-                      </span>
-                      <span className="text-gray-400 text-xs">
-                        P{post.pertemuan}
-                      </span>
+                    <div onClick={() => handleSelectPost(post)}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-bold ${
+                            post.jenis === "tugas"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-[#fdf2f4] text-[#7a1d38]"
+                          }`}
+                        >
+                          {post.jenis === "tugas" ? "📝 Tugas" : "📖 Materi"}
+                        </span>
+                        <span className="text-gray-400 text-xs">
+                          P{post.pertemuan}
+                        </span>
+                      </div>
+                      <h4 className="font-semibold text-gray-900 line-clamp-1">
+                        {post.judul}
+                      </h4>
+                      {post.jenis === "tugas" && post.deadline && (
+                        <p className="text-xs text-red-500 mt-1">
+                          ⏰ {new Date(post.deadline).toLocaleDateString("id-ID")}
+                        </p>
+                      )}
                     </div>
-                    <h4 className="font-semibold text-gray-900 line-clamp-1">
-                      {post.judul}
-                    </h4>
-                    {post.jenis === "tugas" && post.deadline && (
-                      <p className="text-xs text-red-500 mt-1">
-                        ⏰ {new Date(post.deadline).toLocaleDateString("id-ID")}
-                      </p>
+                    {role !== "mahasiswa" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          confirmDeletePost(post);
+                        }}
+                        className="absolute top-3 right-3 p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Hapus"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
                     )}
                   </div>
                 ))}
@@ -1365,6 +1427,78 @@ export default function KelasDetailPage() {
                 className="px-5 py-2.5 bg-gradient-to-r from-[#7a1d38] to-[#9e2a4a] text-white rounded-xl font-medium hover:from-[#5c1529] hover:to-[#7a1d38] transition-all shadow-md"
               >
                 Kumpulkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Delete */}
+      {showDeleteConfirm && postToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  Hapus {postToDelete.jenis === "tugas" ? "Tugas" : "Materi"}?
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Tindakan ini tidak dapat dibatalkan
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+              <div className="flex items-start gap-2 mb-2">
+                <span
+                  className={`px-2 py-1 rounded text-xs font-bold ${
+                    postToDelete.jenis === "tugas"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-[#fdf2f4] text-[#7a1d38]"
+                  }`}
+                >
+                  {postToDelete.jenis === "tugas" ? "📝 Tugas" : "📖 Materi"}
+                </span>
+                <span className="text-gray-400 text-xs">P{postToDelete.pertemuan}</span>
+              </div>
+              <p className="font-semibold text-gray-900">{postToDelete.judul}</p>
+              {postToDelete.jenis === "tugas" && (
+                <p className="text-xs text-red-600 mt-2">
+                  ⚠️ Semua submission mahasiswa akan ikut terhapus
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setPostToDelete(null);
+                }}
+                className="flex-1 px-5 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors font-medium"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeletePost}
+                className="flex-1 px-5 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all shadow-md"
+              >
+                Hapus
               </button>
             </div>
           </div>
