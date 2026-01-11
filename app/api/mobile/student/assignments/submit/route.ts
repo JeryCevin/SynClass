@@ -1,11 +1,8 @@
-// app/api/mobile/student/assignments/[postId]/submit/route.ts - Submit Assignment
+// app/api/mobile/student/assignments/submit/route.ts - Submit Assignment
 import { NextRequest } from 'next/server';
-import { verifyToken, checkStudentRole, successResponse, errorResponse, supabase } from '../../../../lib/auth';
+import { verifyToken, checkStudentRole, successResponse, errorResponse, supabase } from '../../../lib/auth';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ postId: string }> }
-) {
+export async function POST(request: NextRequest) {
   try {
     // Verify token & role
     const tokenResult = await verifyToken(request);
@@ -18,73 +15,13 @@ export async function GET(
       return errorResponse(roleResult.error!, roleResult.code!, roleResult.status!);
     }
 
-    const { postId } = await params;
-
-    // Get assignment details
-    const { data: assignment, error: assignmentError } = await supabase
-      .from('post')
-      .select('*')
-      .eq('id', postId)
-      .single();
-
-    if (assignmentError || !assignment) {
-      return errorResponse('Assignment not found', 'ASSIGNMENT_NOT_FOUND', 404);
-    }
-
-    // Verify student is enrolled in the class
-    const { data: enrollment, error: enrollmentError } = await supabase
-      .from('matakuliah_diambil')
-      .select('*')
-      .eq('mahasiswa_id', tokenResult.userId!)
-      .eq('matakuliah_id', assignment.matakuliah_id)
-      .single();
-
-    if (enrollmentError || !enrollment) {
-      return errorResponse('Not enrolled in this course', 'ACCESS_DENIED', 403);
-    }
-
-    // Get student's submission
-    const { data: submission, error: submissionError } = await supabase
-      .from('tugas_submission')
-      .select('*')
-      .eq('post_id', postId)
-      .eq('mahasiswa_id', tokenResult.userId!)
-      .single();
-
-    if (submissionError && submissionError.code !== 'PGRST116') {
-      // PGRST116 means no row found, which is okay
-      return errorResponse('Failed to fetch submission', 'SUBMISSION_FETCH_ERROR', 400);
-    }
-
-    return successResponse({
-      assignment,
-      submission: submission || null,
-    });
-  } catch (err) {
-    console.error('Get assignment submission error:', err);
-    return errorResponse('Failed to fetch assignment submission', 'SUBMISSION_ERROR', 500);
-  }
-}
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ postId: string }> }
-) {
-  try {
-    // Verify token & role
-    const tokenResult = await verifyToken(request);
-    if (!tokenResult.success) {
-      return errorResponse(tokenResult.error!, tokenResult.code!, tokenResult.status!);
-    }
-
-    const roleResult = await checkStudentRole(tokenResult.userId!);
-    if (!roleResult.success) {
-      return errorResponse(roleResult.error!, roleResult.code!, roleResult.status!);
-    }
-
-    const { postId } = await params;
     const body = await request.json();
-    const { jawaban_text, jawaban_link } = body;
+    const { post_id, jawaban_text, jawaban_link } = body;
+
+    // Validate post_id
+    if (!post_id) {
+      return errorResponse('post_id is required', 'MISSING_POST_ID', 400);
+    }
 
     if (!jawaban_text && !jawaban_link) {
       return errorResponse(
@@ -98,7 +35,7 @@ export async function POST(
     const { data: assignment, error: assignmentError } = await supabase
       .from('post')
       .select('*')
-      .eq('id', postId)
+      .eq('id', post_id)
       .single();
 
     if (assignmentError || !assignment) {
@@ -121,7 +58,7 @@ export async function POST(
     const { data: existingSubmission } = await supabase
       .from('tugas_submission')
       .select('*')
-      .eq('post_id', postId)
+      .eq('post_id', post_id)
       .eq('mahasiswa_id', tokenResult.userId!)
       .single();
 
@@ -151,7 +88,7 @@ export async function POST(
       const { data: created, error: createError } = await supabase
         .from('tugas_submission')
         .insert({
-          post_id: postId,
+          post_id: post_id,
           mahasiswa_id: tokenResult.userId!,
           jawaban_text,
           jawaban_link,
